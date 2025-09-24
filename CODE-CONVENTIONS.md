@@ -13,7 +13,9 @@
   /app
     app.vue               # корневой компонент Nuxt, подключает layout и глобальные стили
     /modules              # доменные модули с изолированными компонентами и API
-      /module             # функциональность ставок (компоненты, типы)
+      /module1            # модуль (компоненты, типы, store, api, composables и другое)
+         ...
+         index.ts
     /shared               # переиспользуемое ядро приложения
       /composables        # утилитарные composable-функции (например, device utils)
       /enums              # общие перечисления для модулей
@@ -33,11 +35,11 @@
 ### 3. Нейминг
 
 | **Что**             | **Рекомендуемый стиль** | **Пример**                                                                  | **Почему**                                                                   |
-| ------------------- | ----------------------- | --------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| ------------------- |-------------------------|-----------------------------------------------------------------------------| ---------------------------------------------------------------------------- |
 | **Папки**           | `kebab-case`            | `user-profile/`, `game-board/`                                              | Универсальный стандарт во Vue, читаемость выше, нет проблем на Linux/Windows |
 | **Vue-компоненты**  | `PascalCase`            | `UserCard.vue`, `GameBoard.vue`                                             | Принято во Vue, поддерживается автоимпортом Nuxt                             |
 | **Stores**          | `kebab-case.store.ts`   | `user.store.ts`, `game.store.ts`<br>внутри → `useUserStore`, `useGameStore` | Ясно видно, что файл — Pinia store                                           |
-| **TypeScript типы** | `kebab-case.type.ts`    | `user.type.ts`, `auth.type.ts`<br>внутри → `export interface User {}`       | Разделяем модельные типы в отдельные файлы                                   |
+| **TypeScript типы** | `kebab-case.types.ts`   | `user.types.ts`, `auth.types.ts`<br>внутри → `export interface User {}`     | Разделяем модельные типы в отдельные файлы                                   |
 | **Enums**           | `kebab-case.enums.ts`   | `user-role.enums.ts`<br>внутри → `export enum UserRole { Admin, Guest }`    | Единый подход к enum-файлам                                                  |
 | **Константы**       | `SCREAMING_SNAKE_CASE`  | `MIN_BET = 10`, `MAX_BET = 100`                                             | Для конфигов и фиксированных значений                                        |
 | **Composables**     | `useXxx.ts`             | `useAuth.ts`, `useDevice.ts`                                                | Nuxt автоимпорт + читаемый нейминг                                           |
