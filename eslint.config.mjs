@@ -34,8 +34,14 @@ export default withNuxt([
             'no-debugger': process.env.NODE_ENV === 'production' ? 'warn' : 'off',
 
             /* --- Vue --- */
-            'vue/multi-word-component-names': 'off',
             'vue/no-v-html': 'off',
+            'vue/block-order': [
+                'error',
+                {
+                    order: ['template', 'script', 'style']
+                }
+            ],
+            'vue/multi-word-component-names': 'off',
 
             /* --- TypeScript --- */
             '@typescript-eslint/no-explicit-any': 'off',
