@@ -1,0 +1,39 @@
+# ==============
+# Stage 1:
+# Run node to build from sources
+# ==============
+
+FROM node:22.17.0-alpine3.21 AS build
+
+USER root
+WORKDIR /var/www/html/
+
+# Add git
+RUN apk add git
+
+# Copy package json with list of dependencies
+COPY package*.json yarn.lock ./
+
+# Install node deps and compile native add-ons
+RUN yarn install --network-timeout 600000
+
+# Copy source files
+COPY . .
+
+# Build nuxt for production
+RUN yarn build
+
+# ==============
+# Stage 2:
+# Run container only with built application files
+# ==============
+
+FROM node:22.17.0-alpine3.21
+
+USER root
+WORKDIR /var/www/html/
+
+# Copy built static files
+COPY --from=build /var/www/html/.output .
+
+CMD ["node", "--max-old-space-size=4096" , "--max-semi-space-size=256", "./server/index.mjs"]

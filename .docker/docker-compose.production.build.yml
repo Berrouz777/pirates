@@ -1,0 +1,7 @@
+services:
+
+  winnery.this-new-game:
+    build:
+      context: ..
+      dockerfile: ./Dockerfile.production
+    restart: always

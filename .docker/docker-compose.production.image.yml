@@ -1,0 +1,4 @@
+services:
+
+  winnery.this-new-game:
+    restart: always

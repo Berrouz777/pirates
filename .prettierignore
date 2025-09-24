@@ -1,0 +1,17 @@
+# nuxt/nitro build
+.nuxt
+.output
+.nitro
+
+# deps
+node_modules
+
+# misc
+dist
+coverage
+*.log
+
+# lockfiles/IDE
+.pnp.*
+.yarn
+.vscode

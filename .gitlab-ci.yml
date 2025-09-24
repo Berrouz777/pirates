@@ -1,0 +1,147 @@
+image: docker:27.1.2
+
+stages:
+    - prepare
+    - release
+    - build
+    - deploy
+
+variables:
+    DOCKERFILE: Dockerfile.production
+    IMAGE_BUILD_NAME: "$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME"
+    GIT_REPOSITORY_URL: git.intextech.ru/winnery/elektronika-game.git
+
+.tags:
+    only:
+        - tags
+
+.only-master:
+    only:
+        - main
+        - master
+
+.deploy-to-host:
+    variables:
+        GIT_STRATEGY: none
+    before_script:
+        - apk add --no-cache openssh-client
+        - mkdir -p ~/.ssh
+        - eval "$(ssh-agent -s)"
+        - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+        - ssh-keyscan -p $PORT -H $HOST >> ~/.ssh/known_hosts
+    script:
+        - export RELEASE_VERSION=$(cat release_version.txt)
+        - ssh $USER@$HOST -p$PORT "cd $DIRECTORY && sudo make pull-production-image-from-registry URL=$CI_REGISTRY USERNAME=$CI_REGISTRY_USER PASSWORD=$CI_REGISTRY_PASSWORD IMAGE=$CI_REGISTRY_IMAGE VERSION=$RELEASE_VERSION"
+        - ssh $USER@$HOST -p$PORT "cd $DIRECTORY && sudo make set-image-version VERSION=$RELEASE_VERSION"
+        - ssh $USER@$HOST -p$PORT "cd $DIRECTORY && sudo make start-from-production-image"
+    dependencies:
+        - increment-version
+
+increment-version:
+    stage: prepare
+    extends: .only-master
+    script:
+        - echo "Fetching the latest tag..."
+        - export LATEST_TAG=$(git describe --tags $(git rev-list --tags --max-count=1))
+        - if [ -z "$LATEST_TAG" ]; then export LATEST_TAG="v0.0.0"; fi
+        - export MAJOR=$(echo $LATEST_TAG | cut -d'.' -f1 | cut -d'v' -f2)
+        - export MINOR=$(echo $LATEST_TAG | cut -d'.' -f2)
+        - export PATCH=$(echo $LATEST_TAG | cut -d'.' -f3)
+        - if [ "$PATCH" -ge 99 ]; then
+            export PATCH=01;
+            export MINOR=$((MINOR + 1));
+            else
+            export PATCH=$((PATCH + 1));
+            fi
+        - export RELEASE_VERSION="v$MAJOR.$MINOR.$PATCH"
+        - echo "$RELEASE_VERSION" > release_version.txt
+        - echo "New version [$RELEASE_VERSION]"
+    artifacts:
+        paths:
+            - release_version.txt
+
+create-tag:
+    stage: prepare
+    needs: [increment-version]
+    extends: .only-master
+    script:
+        - export RELEASE_VERSION=$(cat release_version.txt)
+        - echo "Creating tag [$RELEASE_VERSION]"
+        - git remote set-url origin "https://$DEPLOY_TOKEN_USERNAME:$DEPLOY_TOKEN_VALUE@$GIT_REPOSITORY_URL"
+        - git tag "$RELEASE_VERSION"
+        - git push origin "$RELEASE_VERSION"
+    dependencies:
+        - increment-version
+
+generate-release-description:
+    stage: release
+    needs: [create-tag]
+    extends: .only-master
+    script:
+        - |
+            # Define a function to generate release description from commit messages
+            generate_release_description() {
+              local tag=$1
+              local previous_tag=$(git describe --tags --abbrev=0 $tag^)
+              local project_url="$CI_PROJECT_URL" # GitLab project URL
+              local commits=$(git log $previous_tag..$tag --oneline --pretty=format:'* [%s](%h)' | sed "s/^/  /")
+              echo "$commits"
+            }
+            current_tag=$(git describe --tags --abbrev=0)
+            generate_release_description $current_tag > release_description.md
+    artifacts:
+        paths:
+            - release_description.md
+
+create-release:
+    stage: release
+    needs: [ increment-version, generate-release-description ]
+    image: registry.gitlab.com/gitlab-org/release-cli:latest
+    extends: .only-master
+    script:
+        - export RELEASE_VERSION=$(cat release_version.txt)
+        - export RELEASE_DESCRIPTION=$(cat release_description.md)
+        - echo "Creating release [$RELEASE_VERSION]"
+        - echo "Set release description [$RELEASE_DESCRIPTION]"
+    release:
+        tag_name: "$(cat release_version.txt)"
+        description: "$(cat release_description.md)"
+    dependencies:
+        - increment-version
+        - generate-release-description
+    artifacts:
+        paths:
+            - release_version.txt
+            - release_description.md
+
+build-image:
+    stage: build
+    extends: .only-master
+    needs: [create-release, increment-version]
+    before_script:
+        - docker version
+        - echo -n $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
+    script:
+        - export RELEASE_VERSION=$(cat release_version.txt)
+        - >
+            docker build
+            --pull
+            --tag "$CI_REGISTRY_IMAGE:$RELEASE_VERSION"
+            --file $DOCKERFILE
+            .
+        - docker push "$CI_REGISTRY_IMAGE:$RELEASE_VERSION"
+    dependencies:
+        - increment-version
+
+deploy-to-winnery-stage-server:
+    stage: deploy
+    needs: [build-image, increment-version]
+    extends:
+        - .only-master
+        - .deploy-to-host
+    variables:
+        PORT: $WINNERY_STAGE_SERVER_PORT
+        HOST: $WINNERY_STAGE_SERVER_HOST
+        USER: $WINNERY_STAGE_SERVER_USER
+        DIRECTORY: $WINNERY_STAGE_SERVER_DIRECTORY
+        SSH_PRIVATE_KEY: $WINNERY_STAGE_SERVER_SSH_PRIVATE_KEY
