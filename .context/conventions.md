@@ -10,27 +10,50 @@
 ### 2. Структура проекта
 
 ```
-  /app
-    app.vue               # корневой компонент Nuxt, подключает layout и глобальные стили
-    /modules              # доменные модули с изолированными компонентами и API
-      /module1            # модуль (компоненты, типы, store, api, composables и другое)
-         ...
-         index.ts
-    /shared               # переиспользуемое ядро приложения
-      /composables        # утилитарные composable-функции (например, device utils)
-      /enums              # общие перечисления для модулей
-      /stores             # Pinia-сторы общего назначения
-      /ui                 # UI-кит: кнопки, заголовки и др.
-      ...и другое 
-    /assets               # статические ресурсы и стили
-      /css                # исходники Tailwind и кастомных CSS-компонентов
-      /images             # фоновые изображения и графика
-    /layouts              # шаблоны Nuxt layout
-    /pages                # страницы Nuxt, определяющие маршруты
-  /i18n                   # файлы локализации
+ /app
+├── app.vue               # корневой компонент Nuxt, подключает layout и глобальные стили
+├── modules               # доменные модули с изолированными компонентами и API
+│   └── <module-name>
+│       ├── index.ts              # публичный экспорт (всё, что доступно извне)
+│       ├── components            # Vue-компоненты модуля
+│       │   └── module-component-1
+│       │       ├── moduleComponent1.vue   # основной компонент
+│       │       └── components             # вложенные компоненты
+│       │           └── small-component
+│       │               └── smallComponent1.vue
+│       ├── api                    # API-клиенты и endpoints
+│       │   └── module.api.ts      # конкретные файлы с запросами (может быть несколько)
+│       ├── store                  # Pinia setup stores
+│       │   └── module.store.ts
+│       ├── composables            # модульные composables (useXxx)
+│       │   └── useFeature.ts
+│       ├── types                  # типы, интерфейсы, DTO
+│       │   └── module.types.ts
+│       ├── enums                  # перечисления
+│       │   └── module.enums.ts
+│       ├── constants              # константы
+│       │   └── module.constants.ts
+│       └── utils                  # утилиты (pure-функции)
+│           └── module.utils.ts
+├── shared                # переиспользуемое ядро приложения
+│   ├── composables       # утилитарные composable-функции (например, device utils)
+│   ├── enums             # общие перечисления для модулей
+│   ├── stores            # Pinia-сторы общего назначения
+│   ├── ui                # UI-кит: кнопки, заголовки и др.
+│   └── ...и другое 
+├── assets                # статические ресурсы и стили
+│   ├── css               # исходники Tailwind и кастомных CSS-компонентов
+│   └── images            # фоновые изображения и графика
+├── layouts               # шаблоны Nuxt layout
+└── pages                 # страницы Nuxt, определяющие маршруты
+
+/i18n
+└── en.json / ru.json     # файлы локализации
+
 ``` 
 
 * **Модули** изолированы: всё, что нужно наружу — экспортируется через `index.ts`.
+* **shared** модули должны использоваться без `index.ts` в корнях
 
 ### 3. Нейминг
 
