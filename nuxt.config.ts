@@ -49,7 +49,7 @@ export default defineNuxtConfig({
         '@nuxtjs/tailwindcss',
         '@artmizu/yandex-metrika-nuxt',
         'pinia-plugin-persistedstate/nuxt',
-        '@vite-pwa/nuxt',
+        // '@vite-pwa/nuxt',
         'nuxt-toast',
         'nuxt-vite-legacy'
     ],
@@ -86,26 +86,26 @@ export default defineNuxtConfig({
             accurateTrackBounce: true
         }
     },
-    pwa: {
-        srcDir: '../public',
-        filename: 'sw.js',
-        manifest: {
-            name: 'Pirates',
-            lang: 'ru',
-            icons: [],
-            short_name: 'Pirates',
-            description: 'description',
-            theme_color: '#ffffff'
-        },
-        strategies: 'injectManifest',
-        registerType: 'autoUpdate',
-        useCredentials: true,
-        injectRegister: false,
-        injectManifest: {
-            globPatterns: ['**/*.{js,css,html,png,svg,ico}'],
-            injectionPoint: undefined
-        }
-    },
+    // pwa: {
+    //     srcDir: '../public',
+    //     filename: 'sw.js',
+    //     manifest: {
+    //         name: 'Pirates',
+    //         lang: 'ru',
+    //         icons: [],
+    //         short_name: 'Pirates',
+    //         description: 'description',
+    //         theme_color: '#ffffff'
+    //     },
+    //     strategies: 'injectManifest',
+    //     registerType: 'autoUpdate',
+    //     useCredentials: true,
+    //     injectRegister: false,
+    //     injectManifest: {
+    //         globPatterns: ['**/*.{js,css,html,png,svg,ico}'],
+    //         injectionPoint: undefined
+    //     }
+    // },
     legacy: {
         targets: [
             '> 0.3%', // Browsers with more than 0.3% global usage
