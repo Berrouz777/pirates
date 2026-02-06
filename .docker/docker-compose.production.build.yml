@@ -1,6 +1,6 @@
 services:
 
-  winnery.this-new-game:
+  winnery.pirates.frontend.mvp:
     build:
       context: ..
       dockerfile: ./Dockerfile.production

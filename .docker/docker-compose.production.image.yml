@@ -1,4 +1,4 @@
 services:
 
-  winnery.this-new-game:
+  winnery.pirates.frontend.mvp:
     restart: always
