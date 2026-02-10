@@ -12,6 +12,7 @@ dist
 # Node & Yarn
 # ─────────────────────────────
 node_modules
+package-lock.json
 
 # Yarn v4 PnP
 .pnp.*
