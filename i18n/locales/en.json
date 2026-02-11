@@ -1,1 +1,10 @@
-{}
+{
+    "pirates": {
+        "actions": {
+            "spin": "Spin"
+        },
+        "orientation": {
+            "rotate_to_portrait": "Please rotate your device to portrait orientation to play the game."
+        }
+    }
+}
