@@ -1,6 +1,8 @@
 <template>
-    <div class="aspect-square w-full overflow-hidden">
-        <div class="grid h-full w-full grid-cols-7 grid-rows-7 gap-1 bg-[#EDD3B2] px-3 py-1">
+    <div ref="boardRef" class="relative w-full rounded-tl-[3%] rounded-tr-[3%] bg-[#EDD3B2] px-[1.5%] pt-[3%]">
+        <GameScore :balance="balance" :win="win" />
+
+        <div data-game-grid class="grid aspect-square h-full w-full grid-cols-7 grid-rows-7 gap-1 overflow-hidden bg-[#EDD3B2] px-[3%] py-[1%]">
             <GameCell
                 v-for="(cell, index) in cells"
                 :key="index"
@@ -12,11 +14,13 @@
                 :show-background="isBackgroundCell(index)"
             />
         </div>
+
+        <GameReward :rewards="animationMeta.rewardAnimations" :board-element="boardRef" />
     </div>
 </template>
 
 <script setup lang="ts">
-    import { computed } from 'vue'
+    import { computed, ref } from 'vue'
 
     import type { AnimationMeta, CellValue, GamePhase } from '../../types'
 
@@ -24,15 +28,20 @@
     import { useAnimationTimings } from '../../composables'
 
     import GameCell from './components/game-cell/GameCell.vue'
+    import GameReward from './components/game-reward/GameReward.vue'
+    import GameScore from './components/game-score/GameScore.vue'
 
     export interface GameBoardProps {
         board: Array<CellValue>
         phase: GamePhase
         animationMeta: AnimationMeta
+        balance: number
+        win: number
     }
 
     const props = defineProps<GameBoardProps>()
     const { getSpawnOrderByIndex, getSpinOutOrderByIndex } = useAnimationTimings()
+    const boardRef = ref<HTMLElement | null>(null)
 
     const cells = computed<Array<CellValue>>(() => {
         if (props.board.length === BOARD_SIZE) {

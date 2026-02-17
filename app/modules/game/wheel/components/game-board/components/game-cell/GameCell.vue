@@ -1,22 +1,24 @@
 <template>
-    <div class="relative flex h-full w-full items-center justify-center p-1">
+    <div :data-cell-index="index" class="relative flex h-full w-full items-center justify-center p-1">
         <CellBackground v-if="showBackground" class="absolute inset-0 h-full w-full" />
 
         <div class="game-element relative z-10 h-full w-full" :class="elementClass" :style="elementStyle">
             <GameElement v-if="element" :type="element" />
         </div>
 
-        <img v-if="isClearing" class="z-9 explosion pointer-events-none absolute h-[150%] w-[150%]" src="~assets/images/explosion.png" alt="" />
+        <ExplosionEffect v-if="isClearing" />
     </div>
 </template>
 
 <script setup lang="ts">
     import { computed } from 'vue'
 
+    import { CLEAR_DURATION_MS, FALL_DURATION_MS, FILL_DURATION_MS, SPIN_OUT_DURATION_MS, SPAWN_DURATION_MS } from '../../../../constants/animation.constants'
     import { GRID_SIZE } from '../../../../constants'
     import type { AnimationMeta, CellValue, GamePhase } from '../../../../types'
 
     import CellBackground from './components/cell-background/CellBackground.vue'
+    import ExplosionEffect from './components/explosion-effect/ExplosionEffect.vue'
     import GameElement from './components/game-element/GameElement.vue'
 
     export interface GameCellProps {
@@ -43,7 +45,13 @@
     }))
 
     const elementStyle = computed(() => {
-        const style: Record<string, string> = {}
+        const style: Record<string, string> = {
+            '--spin-out-duration': `${SPIN_OUT_DURATION_MS}ms`,
+            '--spawn-duration': `${SPAWN_DURATION_MS}ms`,
+            '--clear-duration': `${CLEAR_DURATION_MS}ms`,
+            '--fall-duration': `${FALL_DURATION_MS}ms`,
+            '--fill-duration': `${FILL_DURATION_MS}ms`
+        }
         const travelRows = String(GRID_SIZE + 3)
 
         if (props.phase === 'falling' && fallOffset.value > 0) {
@@ -62,7 +70,7 @@
             style['--delay-ms'] = `${props.animationDelayMs}ms`
         }
 
-        return Object.keys(style).length ? style : undefined
+        return style
     })
 </script>
 
@@ -73,25 +81,25 @@
     }
 
     .game-element.is-spinning-out {
-        animation: spin-out 400ms ease-in both;
+        animation: spin-out var(--spin-out-duration, 400ms) ease-in both;
         animation-delay: var(--delay-ms, 0ms);
     }
 
     .game-element.is-spawning {
-        animation: spawn-in 400ms ease-in both;
+        animation: spawn-in var(--spawn-duration, 400ms) ease-in both;
         animation-delay: var(--delay-ms, 0ms);
     }
 
     .game-element.is-clearing {
-        animation: pop-clear 300ms ease-in both;
+        animation: pop-clear var(--clear-duration, 400ms) ease-in both;
     }
 
     .game-element.is-falling {
-        animation: fall 400ms ease-in both;
+        animation: fall var(--fall-duration, 400ms) ease-in both;
     }
 
     .game-element.is-filling {
-        animation: spawn-in 400ms ease-out both;
+        animation: spawn-in var(--fill-duration, 400ms) ease-out both;
         animation-delay: var(--delay-ms, 0ms);
     }
 
@@ -134,6 +142,7 @@
             transform: scale(1.2);
             opacity: 1;
         }
+        60%,
         100% {
             transform: scale(0.8);
             opacity: 0;
@@ -142,10 +151,8 @@
 
     @keyframes fall {
         0% {
-            transform: translateY(calc(var(--fall-rows) * -100%)) scale(1, 1);
-        }
-        5% {
-            transform: translateY(calc(var(--fall-rows) * -100%)) scale(0.9, 1.2);
+            /* Учитываем шаг между ячейками: высота элемента + p-1 сверху/снизу + gap-1 */
+            transform: translateY(calc(var(--fall-rows) * (-100% - 0.75rem))) scale(1, 1);
         }
         60% {
             transform: translateY(0) scale(0.9, 1.2);
@@ -158,26 +165,6 @@
         }
         100% {
             transform: translateY(0) scale(1, 1);
-        }
-    }
-
-    .explosion {
-        transform-origin: center;
-        animation: explosion-scale 350ms ease-out both;
-    }
-
-    @keyframes explosion-scale {
-        0% {
-            transform: scale(0);
-            opacity: 0;
-        }
-        30% {
-            transform: scale(1.3);
-            opacity: 1;
-        }
-        100% {
-            transform: scale(1.5);
-            opacity: 0;
         }
     }
 </style>

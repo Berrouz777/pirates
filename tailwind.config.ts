@@ -14,9 +14,17 @@ export default <Partial<Config>>{
                 // scrollbar: { track: '#585858', thumb: '#BBC8B5' }
             },
             fontFamily: {
-                // Custom font families
-                // sans: ['Inter', 'system-ui', 'sans-serif'],
-                // pixels: ['Epilepsy Sans', 'sans-serif']
+                cuprum: ['Cuprum', 'sans-serif'],
+                darumadrop: ['Darumadrop One', 'sans-serif'],
+                coiny: ['Coiny', 'sans-serif']
+            },
+            fontSize: {
+                'game-xs': ['clamp(10px, 2.5cqw, 20px)', { lineHeight: '1' }],
+                'game-sm': ['clamp(12px, 3.5cqw, 24px)', { lineHeight: '1' }],
+                'game-base': ['clamp(14px, 4.5cqw, 28px)', { lineHeight: '1' }],
+                'game-lg': ['clamp(16px, 5.5cqw, 32px)', { lineHeight: '1' }],
+                'game-xl': ['clamp(20px, 6.5cqw, 40px)', { lineHeight: '1' }],
+                'game-2xl': ['clamp(24px, 8cqw, 48px)', { lineHeight: '1' }]
             }
             // Custom border colors and other options
             //borderColor: { button: '#BBC8B5' },

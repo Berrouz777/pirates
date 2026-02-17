@@ -2,6 +2,10 @@
     "pirates": {
         "actions": {
             "spin": "Spin"
+        },
+        "game": {
+            "balance": "Balance",
+            "win": "Win"
         }
     }
 }

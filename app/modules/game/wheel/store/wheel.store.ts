@@ -3,25 +3,29 @@ import { defineStore } from 'pinia'
 
 import type { AnimationMeta, CellValue, GamePhase, WinResult } from '../types'
 
-import { BOARD_SIZE, CLEAR_DURATION_MS, FALL_DURATION_MS } from '../constants'
-import { useAnimationTimings, useBoardFactory, useBoardGravity, useWinResolver } from '../composables'
+import { BOARD_SIZE, CLEAR_DURATION_MS, FALL_DURATION_MS, getRewardOverlapMs, SPIN_COST, START_BALANCE, WIN_REWARD } from '../constants'
+import { useAnimationTimings, useBoardFactory, useBoardGravity, useRewardAnimation, useWinResolver } from '../composables'
 
 const createEmptyAnimationMeta = (): AnimationMeta => ({
     removingIndices: [],
     spawnIndices: [],
-    fallOffsetsByIndex: {}
+    fallOffsetsByIndex: {},
+    rewardAnimations: []
 })
 
 export const useWheelStore = defineStore('wheel', () => {
     const board = ref<CellValue[]>([])
     const isSpinning = ref<boolean>(false)
     const lastWins = ref<WinResult[]>([])
+    const lastWinAmount = ref<number>(0)
+    const balance = ref<number>(START_BALANCE)
     const phase = ref<GamePhase>('idle')
     const animationMeta = ref<AnimationMeta>(createEmptyAnimationMeta())
 
     const { sleep, getSpinOutTotalDuration, getSpawnTotalDuration } = useAnimationTimings()
     const { createBoard, refillEmptyWithMeta } = useBoardFactory()
     const { applyGravity } = useBoardGravity()
+    const { triggerRewardAnimation } = useRewardAnimation({ animationMeta, sleep })
     const { countByType, findWinningTypes, removeType, getRemovingIndicesByType } = useWinResolver()
 
     const resetAnimationMeta = () => {
@@ -31,6 +35,8 @@ export const useWheelStore = defineStore('wheel', () => {
     const initBoard = () => {
         board.value = createBoard({ avoidWin: true })
         lastWins.value = []
+        lastWinAmount.value = 0
+        balance.value = START_BALANCE
         phase.value = 'idle'
         resetAnimationMeta()
         isSpinning.value = false
@@ -43,7 +49,8 @@ export const useWheelStore = defineStore('wheel', () => {
         animationMeta.value = {
             removingIndices: [],
             spawnIndices: [],
-            fallOffsetsByIndex: gravityResult.fallOffsetsByIndex
+            fallOffsetsByIndex: gravityResult.fallOffsetsByIndex,
+            rewardAnimations: animationMeta.value.rewardAnimations
         }
         phase.value = 'falling'
         await sleep(FALL_DURATION_MS)
@@ -53,7 +60,8 @@ export const useWheelStore = defineStore('wheel', () => {
         animationMeta.value = {
             removingIndices: [],
             spawnIndices: refillResult.spawnIndices,
-            fallOffsetsByIndex: {}
+            fallOffsetsByIndex: {},
+            rewardAnimations: animationMeta.value.rewardAnimations
         }
         phase.value = 'filling'
         await sleep(getSpawnTotalDuration(refillResult.spawnIndices))
@@ -65,6 +73,7 @@ export const useWheelStore = defineStore('wheel', () => {
     const prepareSpinBoardWithAnimation = async () => {
         isSpinning.value = true
         lastWins.value = []
+        lastWinAmount.value = 0
         resetAnimationMeta()
         phase.value = 'spinningOut'
         await sleep(getSpinOutTotalDuration())
@@ -74,7 +83,8 @@ export const useWheelStore = defineStore('wheel', () => {
         animationMeta.value = {
             removingIndices: [],
             spawnIndices: Array.from({ length: BOARD_SIZE }, (_, index) => index),
-            fallOffsetsByIndex: {}
+            fallOffsetsByIndex: {},
+            rewardAnimations: []
         }
         await sleep(getSpawnTotalDuration(animationMeta.value.spawnIndices))
 
@@ -103,13 +113,18 @@ export const useWheelStore = defineStore('wheel', () => {
                     continue
                 }
 
+                triggerRewardAnimation()
+
                 animationMeta.value = {
                     removingIndices,
                     spawnIndices: [],
-                    fallOffsetsByIndex: {}
+                    fallOffsetsByIndex: {},
+                    rewardAnimations: animationMeta.value.rewardAnimations
                 }
                 phase.value = 'clearing'
-                await sleep(CLEAR_DURATION_MS)
+                const rewardOverlapMs = getRewardOverlapMs()
+                await sleep(Math.max(CLEAR_DURATION_MS, rewardOverlapMs))
+                lastWinAmount.value += WIN_REWARD
 
                 currentBoard = removeType(currentBoard, type)
                 board.value = currentBoard
@@ -123,10 +138,11 @@ export const useWheelStore = defineStore('wheel', () => {
 
     // Основной метод спина: запускает анимации и сохраняет результаты выигрышей
     const spin = async () => {
-        if (isSpinning.value) {
+        if (isSpinning.value || balance.value < SPIN_COST) {
             return
         }
 
+        balance.value -= SPIN_COST
         const preparedBoard = await prepareSpinBoardWithAnimation()
         const { wins } = await processWinningChains(preparedBoard)
 
@@ -140,6 +156,8 @@ export const useWheelStore = defineStore('wheel', () => {
         board,
         isSpinning,
         lastWins,
+        lastWinAmount,
+        balance,
         phase,
         animationMeta,
         initBoard,
