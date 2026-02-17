@@ -29,14 +29,28 @@ export default defineNuxtConfig({
     },
     fonts: {
         families: [
-            // {
-            //     name: 'TikTok Sans',
-            //     display: 'swap',
-            //     preload: true,
-            //     provider: 'google',
-            //     fallbacks: ['sans-serif'],
-            //     weights: [700]
-            // }
+            {
+                name: 'Cuprum',
+                display: 'swap',
+                preload: true,
+                provider: 'google',
+                fallbacks: ['sans-serif'],
+                weights: [700]
+            },
+            {
+                name: 'Darumadrop One',
+                display: 'swap',
+                preload: true,
+                provider: 'google',
+                fallbacks: ['sans-serif']
+            },
+            {
+                name: 'Coiny',
+                display: 'swap',
+                preload: true,
+                provider: 'google',
+                fallbacks: ['sans-serif']
+            }
         ]
     },
     modules: [
