@@ -24,7 +24,7 @@ export const useWinResolver = () => {
     }
 
     const findWinningTypes = (counts: Record<ElementType, number>): ElementType[] => {
-        return ELEMENT_TYPES.filter((type) => counts[type] >= WIN_THRESHOLD)
+        return ELEMENT_TYPES.filter((type) => type !== 'bonus-game' && counts[type] >= WIN_THRESHOLD)
     }
 
     const removeType = (board: CellValue[], type: ElementType): CellValue[] => {

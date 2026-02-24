@@ -1,11 +1,16 @@
 {
     "pirates": {
         "actions": {
-            "spin": "Спин"
+            "spin": "Спин",
+            "autospin": "Авто спин",
+            "turbospin": "Турбо спин",
+            "min": "Мин",
+            "max": "Макс"
         },
         "game": {
             "balance": "Баланс",
-            "win": "Выигрыш"
+            "win": "Выигрыш",
+            "bonusgame": "Бонусная игра"
         }
     }
 }

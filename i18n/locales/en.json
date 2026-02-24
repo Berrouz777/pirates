@@ -1,11 +1,16 @@
 {
     "pirates": {
         "actions": {
-            "spin": "Spin"
+            "spin": "Spin",
+            "autospin": "Auto spin",
+            "turbospin": "Turbo spin",
+            "min": "Min",
+            "max": "Max"
         },
         "game": {
             "balance": "Balance",
-            "win": "Win"
+            "win": "Win",
+            "bonusgame": "Bonus game"
         }
     }
 }

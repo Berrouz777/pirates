@@ -1,5 +1,5 @@
 <template>
-    <div class="orientation-overlay fixed inset-0 z-50 hidden items-center justify-center bg-black/80">
+    <div class="orientation-overlay fixed inset-0 z-50 hidden items-center justify-center bg-black/70 backdrop-blur-sm">
         <svg
             class="orientation-icon block h-28 w-28 fill-current text-white/90"
             version="1.1"

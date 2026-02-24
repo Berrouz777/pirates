@@ -7,6 +7,7 @@
 
     import type { ElementType } from '../../../../../../types'
 
+    import BonusGameElement from './components/elements/bonus-game-element/BonusGameElement.vue'
     import BombElement from './components/elements/bomb-element/BombElement.vue'
     import CannonElement from './components/elements/cannon-element/CannonElement.vue'
     import KegElement from './components/elements/keg-element/KegElement.vue'
@@ -24,14 +25,15 @@
 
     const elementComponent = computed(() => {
         const elementsMap: Record<ElementType, unknown> = {
-            wheel: WheelElement,
-            bomb: BombElement,
-            sword: SwordElement,
-            shield: ShieldElement,
-            musketoon: MusketoonElement,
-            keg: KegElement,
-            tankard: TankardElement,
-            cannon: CannonElement
+            'wheel': WheelElement,
+            'bonus-game': BonusGameElement,
+            'bomb': BombElement,
+            'sword': SwordElement,
+            'shield': ShieldElement,
+            'musketoon': MusketoonElement,
+            'keg': KegElement,
+            'tankard': TankardElement,
+            'cannon': CannonElement
         }
 
         return elementsMap[props.type]

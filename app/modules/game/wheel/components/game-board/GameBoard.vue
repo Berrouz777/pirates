@@ -2,7 +2,7 @@
     <div ref="boardRef" class="relative w-full rounded-tl-[3%] rounded-tr-[3%] bg-[#EDD3B2] px-[1.5%] pt-[3%]">
         <GameScore :balance="balance" :win="win" />
 
-        <div data-game-grid class="grid aspect-square h-full w-full grid-cols-7 grid-rows-7 gap-1 overflow-hidden bg-[#EDD3B2] px-[3%] py-[1%]">
+        <div data-game-grid class="grid h-full w-full grid-cols-7 grid-rows-7 gap-1 overflow-hidden bg-[#EDD3B2] px-[3%] py-[1%]">
             <GameCell
                 v-for="(cell, index) in cells"
                 :key="index"

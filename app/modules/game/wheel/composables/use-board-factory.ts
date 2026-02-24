@@ -1,10 +1,15 @@
 import type { CreateBoardOptions, ElementType } from '../types'
 
-import { BOARD_SIZE, ELEMENT_TYPES, WIN_THRESHOLD } from '../constants'
+import { BOARD_SIZE, BONUS_GAME_DROP_CHANCE, ELEMENT_TYPES, WIN_THRESHOLD } from '../constants'
+const REGULAR_ELEMENT_TYPES = ELEMENT_TYPES.filter((type) => type !== 'bonus-game') as ElementType[]
 
 const getRandomElementType = (): ElementType => {
-    const index = Math.floor(Math.random() * ELEMENT_TYPES.length)
-    return ELEMENT_TYPES[index]!
+    if (Math.random() < BONUS_GAME_DROP_CHANCE) {
+        return 'bonus-game'
+    }
+
+    const index = Math.floor(Math.random() * REGULAR_ELEMENT_TYPES.length)
+    return REGULAR_ELEMENT_TYPES[index]!
 }
 
 const createRandomBoard = (size: number): ElementType[] => {
@@ -20,11 +25,12 @@ const createBoardWithoutWins = (size: number): ElementType[] => {
         },
         {} as Record<ElementType, number>
     )
+    remaining['bonus-game'] = 0
 
     const board: ElementType[] = []
 
     for (let index = 0; index < size; index += 1) {
-        const availableTypes = ELEMENT_TYPES.filter((type) => remaining[type] > 0)
+        const availableTypes = REGULAR_ELEMENT_TYPES.filter((type) => remaining[type] > 0)
         const nextType = availableTypes[Math.floor(Math.random() * availableTypes.length)]!
         remaining[nextType] -= 1
         board.push(nextType)
