@@ -138,7 +138,7 @@
             transform: scale(1);
             opacity: 1;
         }
-        40% {
+        20% {
             transform: scale(1.2);
             opacity: 1;
         }

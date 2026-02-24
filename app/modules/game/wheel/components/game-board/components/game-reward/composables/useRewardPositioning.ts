@@ -15,6 +15,29 @@ export interface PositionedReward {
     style: CSSProperties
 }
 
+interface RelativePosition {
+    x: number
+    y: number
+}
+
+const getCenterRelativeToAncestor = (element: HTMLElement, ancestor: HTMLElement): RelativePosition | null => {
+    let current: HTMLElement | null = element
+    let x = element.offsetWidth / 2
+    let y = element.offsetHeight / 2
+
+    while (current && current !== ancestor) {
+        x += current.offsetLeft
+        y += current.offsetTop
+        current = current.offsetParent as HTMLElement | null
+    }
+
+    if (current !== ancestor) {
+        return null
+    }
+
+    return { x, y }
+}
+
 export const useRewardPositioning = ({ rewards, boardElement }: UseRewardPositioningParams) => {
     const positionedRewards = computed<PositionedReward[]>(() => {
         const board = boardElement()
@@ -24,7 +47,6 @@ export const useRewardPositioning = ({ rewards, boardElement }: UseRewardPositio
             return []
         }
 
-        const boardRect = board.getBoundingClientRect()
         const gameGrid = board.querySelector<HTMLElement>('[data-game-grid]')
         const winTarget = board.querySelector<HTMLElement>('[data-win-target]')
 
@@ -32,19 +54,23 @@ export const useRewardPositioning = ({ rewards, boardElement }: UseRewardPositio
             return []
         }
 
-        const gridRect = gameGrid.getBoundingClientRect()
-        const winRect = winTarget.getBoundingClientRect()
-        const sourceX = gridRect.left - boardRect.left + gridRect.width / 2
-        const sourceY = gridRect.top - boardRect.top + gridRect.height / 2
-        const targetX = winRect.left - boardRect.left + winRect.width / 2
-        const targetY = winRect.top - boardRect.top + winRect.height / 2
+        const sourceCenter = getCenterRelativeToAncestor(gameGrid, board)
+        const targetCenter = getCenterRelativeToAncestor(winTarget, board)
+        if (!sourceCenter || !targetCenter) {
+            return []
+        }
+
+        const sourceX = sourceCenter.x
+        const sourceY = sourceCenter.y
+        const targetX = targetCenter.x
+        const targetY = targetCenter.y
         const flyX = targetX - sourceX
         const flyY = targetY - sourceY
 
         // Подложка (burst) — шире сетки, почти на всю ширину игры
-        const rewardSize = Math.max(gridRect.width * 1.4, 390)
+        const rewardSize = Math.max(gameGrid.offsetWidth * 1.4, 390)
         // Ширина суммы — от ширины сетки, независимо от размера подложки
-        const amountWidth = gridRect.width
+        const amountWidth = gameGrid.offsetWidth
 
         return rewardsList.map((reward) => ({
             id: reward.id,

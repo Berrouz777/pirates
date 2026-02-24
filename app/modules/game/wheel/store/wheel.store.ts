@@ -3,8 +3,8 @@ import { defineStore } from 'pinia'
 
 import type { AnimationMeta, CellValue, GamePhase, WinResult } from '../types'
 
-import { BOARD_SIZE, CLEAR_DURATION_MS, FALL_DURATION_MS, getRewardOverlapMs, SPIN_COST, START_BALANCE, WIN_REWARD } from '../constants'
-import { useAnimationTimings, useBoardFactory, useBoardGravity, useRewardAnimation, useWinResolver } from '../composables'
+import { BOARD_SIZE, DEFAULT_BET, FALL_DURATION_MS, START_BALANCE } from '../constants'
+import { useAnimationTimings, useBoardFactory, useBoardGravity, useRewardAnimation, useWinningChains } from '../composables'
 
 const createEmptyAnimationMeta = (): AnimationMeta => ({
     removingIndices: [],
@@ -16,9 +16,12 @@ const createEmptyAnimationMeta = (): AnimationMeta => ({
 export const useWheelStore = defineStore('wheel', () => {
     const board = ref<CellValue[]>([])
     const isSpinning = ref<boolean>(false)
+    const isAutoSpinning = ref<boolean>(false)
     const lastWins = ref<WinResult[]>([])
     const lastWinAmount = ref<number>(0)
     const balance = ref<number>(START_BALANCE)
+    const bet = ref<number>(DEFAULT_BET)
+    const bonusProgress = ref<number>(0)
     const phase = ref<GamePhase>('idle')
     const animationMeta = ref<AnimationMeta>(createEmptyAnimationMeta())
 
@@ -26,7 +29,6 @@ export const useWheelStore = defineStore('wheel', () => {
     const { createBoard, refillEmptyWithMeta } = useBoardFactory()
     const { applyGravity } = useBoardGravity()
     const { triggerRewardAnimation } = useRewardAnimation({ animationMeta, sleep })
-    const { countByType, findWinningTypes, removeType, getRemovingIndicesByType } = useWinResolver()
 
     const resetAnimationMeta = () => {
         animationMeta.value = createEmptyAnimationMeta()
@@ -37,9 +39,12 @@ export const useWheelStore = defineStore('wheel', () => {
         lastWins.value = []
         lastWinAmount.value = 0
         balance.value = START_BALANCE
+        bet.value = DEFAULT_BET
+        bonusProgress.value = 0
         phase.value = 'idle'
         resetAnimationMeta()
         isSpinning.value = false
+        isAutoSpinning.value = false
     }
 
     // Применяем "гравитацию" к полю и заполняем пустые ячейки новыми элементами с анимацией
@@ -91,58 +96,28 @@ export const useWheelStore = defineStore('wheel', () => {
         return [...board.value]
     }
 
-    // Обрабатываем все последовательные выигрыши, пока есть выигрышные комбинации
-    const processWinningChains = async (initialBoard: CellValue[]) => {
-        const wins: WinResult[] = []
-        let currentBoard = [...initialBoard]
-
-        while (true) {
-            const counts = countByType(currentBoard)
-            const winningTypes = findWinningTypes(counts)
-
-            if (winningTypes.length === 0) {
-                break
-            }
-
-            wins.push(...winningTypes.map((type) => ({ type, count: counts[type] })))
-
-            for (const type of winningTypes) {
-                const removingIndices = getRemovingIndicesByType(currentBoard, type)
-
-                if (removingIndices.length === 0) {
-                    continue
-                }
-
-                triggerRewardAnimation()
-
-                animationMeta.value = {
-                    removingIndices,
-                    spawnIndices: [],
-                    fallOffsetsByIndex: {},
-                    rewardAnimations: animationMeta.value.rewardAnimations
-                }
-                phase.value = 'clearing'
-                const rewardOverlapMs = getRewardOverlapMs()
-                await sleep(Math.max(CLEAR_DURATION_MS, rewardOverlapMs))
-                lastWinAmount.value += WIN_REWARD
-
-                currentBoard = removeType(currentBoard, type)
-                board.value = currentBoard
-            }
-
-            currentBoard = await applyGravityAndRefillWithAnimation(currentBoard)
+    const { processWinningChains } = useWinningChains({
+        board,
+        animationMeta,
+        phase,
+        bonusProgress,
+        lastWinAmount,
+        sleep,
+        triggerRewardAnimation,
+        applyGravityAndRefillWithAnimation,
+        onBonusGameTriggered: () => {
+            stopAutoSpin()
         }
-
-        return { wins }
-    }
+    })
 
     // Основной метод спина: запускает анимации и сохраняет результаты выигрышей
     const spin = async () => {
-        if (isSpinning.value || balance.value < SPIN_COST) {
+        const currentBet = bet.value
+        if (isSpinning.value || balance.value < currentBet) {
             return
         }
 
-        balance.value -= SPIN_COST
+        balance.value -= currentBet
         const preparedBoard = await prepareSpinBoardWithAnimation()
         const { wins } = await processWinningChains(preparedBoard)
 
@@ -152,15 +127,38 @@ export const useWheelStore = defineStore('wheel', () => {
         isSpinning.value = false
     }
 
+    function stopAutoSpin() {
+        isAutoSpinning.value = false
+    }
+
+    const startAutoSpin = async () => {
+        if (isAutoSpinning.value || isSpinning.value || balance.value < bet.value) {
+            return
+        }
+
+        isAutoSpinning.value = true
+
+        while (isAutoSpinning.value && balance.value >= bet.value) {
+            await spin()
+        }
+
+        isAutoSpinning.value = false
+    }
+
     return {
         board,
         isSpinning,
+        isAutoSpinning,
         lastWins,
         lastWinAmount,
         balance,
+        bet,
+        bonusProgress,
         phase,
         animationMeta,
         initBoard,
-        spin
+        spin,
+        startAutoSpin,
+        stopAutoSpin
     }
 })
