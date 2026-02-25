@@ -8,7 +8,7 @@
                 <div class="relative w-full">
                     <GameBoard :board="board" :phase="phase" :animation-meta="animationMeta" :balance="balance" :win="lastWinAmount" />
                 </div>
-                <FooterBlock :is-spinning="isSpinning" @spin="spin" />
+                <FooterBlock :is-spinning="isSpinning" :is-controls-locked="isControlsLocked" @spin="spin" />
             </div>
         </div>
 
@@ -26,7 +26,8 @@
     // Bindings
     const wheelStore = useWheelStore()
     const { spin, initBoard } = wheelStore
-    const { board, isSpinning, phase, animationMeta, balance, lastWinAmount } = storeToRefs(wheelStore)
+    const { board, isSpinning, isBonusAnimationPlaying, phase, animationMeta, balance, lastWinAmount } = storeToRefs(wheelStore)
+    const isControlsLocked = computed(() => isSpinning.value || isBonusAnimationPlaying.value)
     const { gameStretchShellRef, gameContainerRef, gameContainerStyle } = useMobileGameStretch({ mobileMaxWidth: 599 })
 
     // Hooks

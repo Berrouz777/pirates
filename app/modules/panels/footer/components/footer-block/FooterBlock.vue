@@ -1,36 +1,45 @@
 <template>
-    <div class="relative min-h-[21.9%] w-full bg-[#EDD3B2]" @click.capture="handleFooterButtonClick">
+    <div
+        class="relative min-h-[21.9%] w-full bg-[#EDD3B2]"
+        :class="{ 'pointer-events-none': props.isControlsLocked && !isAutoSpinning }"
+        @click.capture="handleFooterButtonClick"
+    >
         <img alt="footer image" :src="footerImage" class="pointer-events-none h-full w-full object-contain" />
 
         <BonusBlock class="absolute right-[0.5%] top-[1%] h-[45%] w-[93.4%]" />
 
         <div class="absolute left-[4.4%] top-[43%] flex h-[16%] w-[35.4%] items-center justify-between">
-            <MinusPlusButton mode="minus" class="h-full w-[18.5%]" :disabled="isAtMinBet" @click="decreaseBet" />
+            <MinusPlusButton mode="minus" class="h-full w-[18.5%]" :disabled="isAtMinBet || props.isControlsLocked" @click="decreaseBet" />
             <p class="font-cuprum text-game-xl uppercase text-[#B6C7DB]">
                 {{ bet }}
             </p>
-            <MinusPlusButton mode="plus" class="h-full w-[18.5%]" :disabled="isAtMaxBet" @click="increaseBet" />
+            <MinusPlusButton mode="plus" class="h-full w-[18.5%]" :disabled="isAtMaxBet || props.isControlsLocked" @click="increaseBet" />
         </div>
 
         <MenuButton class="absolute right-[88.5%] top-[66%] h-[19.5%] w-[8.5%]" />
 
-        <MinMaxButton mode="max" class="absolute right-[59%] top-[66%] h-[18%] w-[14%]" :disabled="isAtMaxBet" @click="setBetToMax" />
-        <MinMaxButton mode="min" class="absolute right-[73.8%] top-[66%] h-[18%] w-[14%]" :disabled="isAtMinBet" @click="setBetToMin" />
+        <MinMaxButton mode="max" class="absolute right-[59%] top-[66%] h-[18%] w-[14%]" :disabled="isAtMaxBet || props.isControlsLocked" @click="setBetToMax" />
+        <MinMaxButton
+            mode="min"
+            class="absolute right-[73.8%] top-[66%] h-[18%] w-[14%]"
+            :disabled="isAtMinBet || props.isControlsLocked"
+            @click="setBetToMin"
+        />
         <SpinModeButton
             mode="auto"
             class="absolute right-[4%] top-[40%] h-[20%] w-[25%]"
-            :disabled="props.isSpinning && !isAutoSpinning && !isStoppingAutoSpin"
+            :disabled="(props.isControlsLocked && !isAutoSpinning) || (props.isSpinning && !isAutoSpinning && !isStoppingAutoSpin)"
             :pressed="isAutoSpinning"
             @click="handleAutoSpinClick"
         />
         <SpinModeButton
             mode="turbo"
             class="absolute right-[4%] top-[62.5%] h-[20%] w-[25%]"
-            :disabled="props.isSpinning && !isAutoSpinning && !isStoppingAutoSpin"
+            :disabled="(props.isControlsLocked && !isAutoSpinning) || (props.isSpinning && !isAutoSpinning && !isStoppingAutoSpin)"
         />
         <SpinButton
             class="absolute right-[31.5%] top-[40%] h-[44.5%] w-[25%]"
-            :disabled="props.isSpinning && !isAutoSpinning && !isStoppingAutoSpin"
+            :disabled="(props.isControlsLocked && !isAutoSpinning) || (props.isSpinning && !isAutoSpinning && !isStoppingAutoSpin)"
             @click="handleSpinClick"
         />
     </div>
@@ -54,6 +63,7 @@
 
     export interface FooterBlockProps {
         isSpinning: boolean
+        isControlsLocked: boolean
     }
 
     const props = defineProps<FooterBlockProps>()
@@ -81,6 +91,10 @@
     )
 
     const handleAutoSpinClick = async () => {
+        if (props.isControlsLocked && !isAutoSpinning.value) {
+            return
+        }
+
         if (isAutoSpinning.value) {
             if (props.isSpinning) {
                 isStoppingAutoSpin.value = true
@@ -93,6 +107,10 @@
     }
 
     const handleSpinClick = () => {
+        if (props.isControlsLocked && !isAutoSpinning.value) {
+            return
+        }
+
         if (isAutoSpinning.value) {
             stopAutoSpin()
             if (props.isSpinning) {
