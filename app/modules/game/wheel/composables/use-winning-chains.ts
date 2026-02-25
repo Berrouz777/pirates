@@ -11,6 +11,7 @@ export interface UseWinningChainsOptions {
     phase: Ref<GamePhase>
     bonusProgress: Ref<number>
     lastWinAmount: Ref<number>
+    getWinRewardMultiplier: () => number
     sleep: (durationMs: number) => Promise<void>
     triggerRewardAnimation: () => void
     applyGravityAndRefillWithAnimation: (currentBoard: CellValue[]) => Promise<CellValue[]>
@@ -23,6 +24,7 @@ export const useWinningChains = ({
     phase,
     bonusProgress,
     lastWinAmount,
+    getWinRewardMultiplier,
     sleep,
     triggerRewardAnimation,
     applyGravityAndRefillWithAnimation,
@@ -86,7 +88,7 @@ export const useWinningChains = ({
             setClearingState(removingIndices)
             const rewardOverlapMs = getRewardOverlapMs()
             await sleep(Math.max(CLEAR_DURATION_MS, rewardOverlapMs))
-            lastWinAmount.value += WIN_REWARD
+            lastWinAmount.value += WIN_REWARD * getWinRewardMultiplier()
 
             nextBoard = removeType(nextBoard, type)
             if (bonusRemovingIndices.length > 0) {

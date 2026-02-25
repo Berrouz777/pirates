@@ -1,4 +1,5 @@
 export * from './animation.constants'
+export * from './bonus-roulette.constants'
 export * from './board.constants'
 export * from './economy.constants'
 export * from './elements.constants'
