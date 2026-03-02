@@ -65,6 +65,15 @@ export const useRouletteSpin = (options: UseRouletteSpinOptions) => {
         })
     }
 
+    // Вычисляет коэффициент scaleX на элементе: отношение визуального размера к CSS layout-размеру.
+    // getBoundingClientRect учитывает все внешние transform, offsetWidth — нет.
+    const getScaleX = (el: HTMLElement): number => {
+        const layoutWidth = el.offsetWidth
+        if (!layoutWidth) return 1
+        const visualWidth = el.getBoundingClientRect().width
+        return visualWidth / layoutWidth
+    }
+
     const getCellMetrics = (): CellMetrics => {
         const track = trackRef.value
         const firstCard = track?.querySelector<HTMLElement>('.roulette-card')
@@ -76,15 +85,19 @@ export const useRouletteSpin = (options: UseRouletteSpinOptions) => {
             }
         }
 
-        // translate3d одинаково сдвигает трек и карточки — разность left не зависит от текущего offset
+        // getBoundingClientRect возвращает экранные пиксели с учётом scaleX родителей.
+        // Делим на scaleX чтобы получить CSS layout-пиксели, в которых работает translate3d.
+        const scaleX = getScaleX(track)
         const trackRect = track.getBoundingClientRect()
         const firstCardRect = firstCard.getBoundingClientRect()
         const secondCard = firstCard.nextElementSibling as HTMLElement | null
 
         return {
-            firstCardOffset: firstCardRect.left - trackRect.left,
-            width: firstCardRect.width,
-            step: secondCard ? secondCard.getBoundingClientRect().left - firstCardRect.left : firstCardRect.width + options.fallbackCellGapPx
+            firstCardOffset: (firstCardRect.left - trackRect.left) / scaleX,
+            width: firstCardRect.width / scaleX,
+            step: secondCard
+                ? (secondCard.getBoundingClientRect().left - firstCardRect.left) / scaleX
+                : firstCardRect.width / scaleX + options.fallbackCellGapPx
         }
     }
 

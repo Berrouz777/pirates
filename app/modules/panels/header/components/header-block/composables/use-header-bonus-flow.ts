@@ -149,14 +149,18 @@ export const useHeaderBonusFlow = () => {
         () => activeBonusEffect.value,
         async (nextEffect, previousEffect) => {
             if (nextEffect?.prizeType === 'freespins') {
-                currentVariant.value = 'FREESPINS'
-                customText.value = formatFreespinsText(nextEffect.remainingSpins)
+                if (!isTransitioning.value) {
+                    currentVariant.value = 'FREESPINS'
+                    customText.value = formatFreespinsText(nextEffect.remainingSpins)
+                }
                 return
             }
 
             if (nextEffect?.prizeType === 'multiple') {
-                currentVariant.value = 'WIN_MULTIPLE'
-                customText.value = formatWinMultipleText(nextEffect.multipleValue)
+                if (!isTransitioning.value) {
+                    currentVariant.value = 'WIN_MULTIPLE'
+                    customText.value = formatWinMultipleText(nextEffect.multipleValue)
+                }
                 return
             }
 

@@ -1,5 +1,5 @@
 <template>
-    <div v-show="isVisible" class="absolute inset-0 z-10 flex h-full w-full items-center justify-center overflow-hidden">
+    <div v-show="isVisible" class="absolute inset-0 z-10 flex h-full w-full items-center justify-center overflow-hidden [transform:translateZ(0)]">
         <img
             :src="boxImage"
             alt="box"
@@ -82,9 +82,12 @@
             const el = pointerRef.value?.$el
             const viewportEl = viewportRef.value
             if (!el || !viewportEl) return null
+            // getBoundingClientRect учитывает scaleX родителей — делим на него,
+            // чтобы получить CSS layout-пиксели, согласованные с translate3d
+            const scaleX = viewportEl.getBoundingClientRect().width / (viewportEl.offsetWidth || 1)
             const pointerRect = el.getBoundingClientRect()
             const viewportRect = viewportEl.getBoundingClientRect()
-            return pointerRect.left + pointerRect.width / 2 - viewportRect.left
+            return (pointerRect.left + pointerRect.width / 2 - viewportRect.left) / scaleX
         }
     })
 
