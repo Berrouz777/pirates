@@ -16,6 +16,7 @@ import {
     ROULETTE_SLIDE_MS,
     SIGN_TO_ROULETTE_DELAY_MS
 } from '../components/roulette-block/constants/roulette.constants'
+import { ROULETTE_CELLS } from '../components/roulette-block/constants/roulette-cells.constants'
 import type { BonusFlowPhase } from '../types/header-bonus-flow.types'
 
 const sleep = (durationMs: number) => new Promise((resolve) => setTimeout(resolve, durationMs))
@@ -39,7 +40,12 @@ export const useHeaderBonusFlow = () => {
     const isRoulettePanelVisible = computed(() => ['roulette-enter', 'spinning', 'roulette-exit'].includes(bonusFlowPhase.value))
     const isRouletteExiting = computed(() => bonusFlowPhase.value === 'roulette-exit')
     const currentText = computed(() => customText.value ?? HEADER_SIGNBOARD_TEXTS[currentVariant.value])
-    const targetCellIndex = computed(() => bonusRouletteResult.value?.cellIndex ?? null)
+    const targetCellIndex = computed(() => {
+        const key = bonusRouletteResult.value?.cellKey
+        if (!key) return null
+        const index = ROULETTE_CELLS.findIndex((cell) => cell.key === key)
+        return index >= 0 ? index : null
+    })
     const signContentTransitionName = computed(() => (bonusFlowPhase.value === 'bonus-label' ? 'sign-content-scale' : 'sign-content-none'))
     const signContentTransitionMode = computed<'out-in' | undefined>(() => (bonusFlowPhase.value === 'bonus-label' ? 'out-in' : undefined))
 
@@ -54,7 +60,7 @@ export const useHeaderBonusFlow = () => {
     }
 
     const applyResultVariant = async (result: BonusRouletteResult) => {
-        wheelStore.applyBonusRouletteResult(result)
+        wheelStore.applyBonusRouletteResult()
 
         animationState.value = 'entering'
         bonusFlowPhase.value = 'result'
@@ -97,6 +103,10 @@ export const useHeaderBonusFlow = () => {
             bonusFlowPhase.value = 'bonus-label'
 
             const preparedResult = wheelStore.prepareBonusRouletteResult()
+            if (!preparedResult) {
+                wheelStore.isBonusMode = false
+                return
+            }
 
             await sleep(SIGN_TO_ROULETTE_DELAY_MS)
             animationState.value = 'dropping'
@@ -146,7 +156,7 @@ export const useHeaderBonusFlow = () => {
 
             if (nextEffect?.prizeType === 'multiple') {
                 currentVariant.value = 'WIN_MULTIPLE'
-                customText.value = formatWinMultipleText(nextEffect.multipleValue ?? 1)
+                customText.value = formatWinMultipleText(nextEffect.multipleValue)
                 return
             }
 

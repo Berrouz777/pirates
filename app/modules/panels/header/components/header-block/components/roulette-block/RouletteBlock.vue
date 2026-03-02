@@ -17,7 +17,7 @@
                     <div
                         v-for="cell in ribbonCells"
                         :key="cell.renderKey"
-                        class="relative h-full min-h-[28.4%] shrink-0 grow-0 basis-[28.4%] overflow-hidden rounded-[5%]"
+                        class="roulette-card relative h-full min-h-[28.4%] shrink-0 grow-0 basis-[28.4%] overflow-hidden rounded-[5%]"
                         :class="{ 'roulette-card--empty': cell.key === 'empty' }"
                     >
                         <img
@@ -31,13 +31,13 @@
                 </div>
             </div>
 
-            <SvgRoulettePointer v-if="showRoulette" class="absolute inset-0 -top-[10%] left-0 right-0 mx-auto" />
+            <SvgRoulettePointer v-if="showRoulette" ref="pointerRef" class="absolute inset-0 -top-[10%] left-0 right-0 mx-auto" />
         </div>
     </div>
 </template>
 
 <script setup lang="ts">
-    import { computed, watch } from 'vue'
+    import { computed, ref, watch } from 'vue'
     import { useRouletteSpin } from './composables/use-roulette-spin'
     import type { RouletteRenderCell, RouletteSpinResult } from './types/roulette.types'
     import { ROULETTE_CELLS } from './constants/roulette-cells.constants'
@@ -46,7 +46,6 @@
         FALLBACK_CELL_GAP_PX,
         FALLBACK_CELL_WIDTH_PX,
         MAX_FULL_LOOPS,
-        MIN_FULL_LOOPS,
         RIBBON_REPEAT_COUNT,
         ROULETTE_SLIDE_MS,
         SPIN_DURATION_MS
@@ -70,15 +69,23 @@
         (eventName: 'spin-finished', payload: RouletteSpinResult): void
     }>()
 
+    const pointerRef = ref<{ $el: HTMLElement } | null>(null)
     const rouletteCells = ROULETTE_CELLS
     const { viewportRef, trackRef, trackStyle, startSpin } = useRouletteSpin({
         cellCount: rouletteCells.length,
         ribbonRepeatCount: RIBBON_REPEAT_COUNT,
         spinDurationMs: SPIN_DURATION_MS,
-        minFullLoops: MIN_FULL_LOOPS,
         maxFullLoops: MAX_FULL_LOOPS,
         fallbackCellWidthPx: FALLBACK_CELL_WIDTH_PX,
-        fallbackCellGapPx: FALLBACK_CELL_GAP_PX
+        fallbackCellGapPx: FALLBACK_CELL_GAP_PX,
+        getPointerCenterX: () => {
+            const el = pointerRef.value?.$el
+            const viewportEl = viewportRef.value
+            if (!el || !viewportEl) return null
+            const pointerRect = el.getBoundingClientRect()
+            const viewportRect = viewportEl.getBoundingClientRect()
+            return pointerRect.left + pointerRect.width / 2 - viewportRect.left
+        }
     })
 
     const ribbonCells = computed<RouletteRenderCell[]>(() =>
