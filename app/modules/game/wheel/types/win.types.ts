@@ -1,19 +1,7 @@
-import type { ElementType } from './element.types'
-
-export interface WinResult {
-    type: ElementType
-    count: number
-}
-
-export interface ResolveWinsResult {
-    board: ElementType[]
-    wins: WinResult[]
-}
-
 export type BonusRouletteCellKey =
     | 'empty'
     | 'freespin-5'
-    | 'multiple-15'
+    | 'multiple-1.5'
     | 'multiple-2'
     | 'multiple-5'
     | 'cash-10'
@@ -27,7 +15,6 @@ export type BonusRoulettePrizeType = 'empty' | 'freespins' | 'multiple' | 'cash'
 
 export interface BonusRouletteResult {
     cellKey: BonusRouletteCellKey
-    cellIndex: number
     prizeType: BonusRoulettePrizeType
     freeSpinsCount: number | null
     multipleValue: number | null
@@ -35,9 +22,15 @@ export interface BonusRouletteResult {
     cashAmount: number | null
 }
 
-export interface ActiveBonusEffect {
-    prizeType: Exclude<BonusRoulettePrizeType, 'empty' | 'cash'>
+export interface ActiveFreespinsEffect {
+    prizeType: 'freespins'
     remainingSpins: number
-    freeSpinsCount: number | null
-    multipleValue: number | null
 }
+
+export interface ActiveMultipleEffect {
+    prizeType: 'multiple'
+    remainingSpins: number
+    multipleValue: number
+}
+
+export type ActiveBonusEffect = ActiveFreespinsEffect | ActiveMultipleEffect

@@ -5,19 +5,29 @@ export interface UseRouletteSpinOptions {
     cellCount: number
     ribbonRepeatCount: number
     spinDurationMs: number
-    minFullLoops: number
     maxFullLoops: number
     fallbackCellWidthPx: number
     fallbackCellGapPx: number
+    // Возвращает X-координату центра pointer относительно левого края viewport.
+    // Если не задан — используется геометрический центр viewport.
+    getPointerCenterX?: () => number | null
+}
+
+interface CellMetrics {
+    step: number
+    width: number
+    firstCardOffset: number
 }
 
 export const useRouletteSpin = (options: UseRouletteSpinOptions) => {
     const viewportRef = ref<HTMLDivElement | null>(null)
     const trackRef = ref<HTMLDivElement | null>(null)
     const currentOffsetPx = ref<number>(0)
+    // Чистый offset без jitter — используется как база для следующего спина
+    let baseOffsetPx = 0
+    let activeSlotIndex: number | null = null
+    let animationFrameId: number | null = null
     const isRolling = ref<boolean>(false)
-    const activeSlotIndex = ref<number | null>(null)
-    const animationFrameId = ref<number | null>(null)
     let resizeObserver: ResizeObserver | null = null
 
     const totalSlots = computed(() => options.cellCount * options.ribbonRepeatCount)
@@ -29,125 +39,125 @@ export const useRouletteSpin = (options: UseRouletteSpinOptions) => {
     const easeOutCubic = (progress: number) => 1 - (1 - progress) ** 3
 
     const stopAnimationFrame = () => {
-        if (animationFrameId.value === null) {
-            return
-        }
-
-        cancelAnimationFrame(animationFrameId.value)
-        animationFrameId.value = null
+        if (animationFrameId === null) return
+        cancelAnimationFrame(animationFrameId)
+        animationFrameId = null
     }
 
     const animateOffset = (from: number, to: number, durationMs: number) => {
         return new Promise<void>((resolve) => {
             const startTime = performance.now()
 
-            const step = (now: number) => {
+            const tick = (now: number) => {
                 const progress = Math.min((now - startTime) / durationMs, 1)
-                const eased = easeOutCubic(progress)
-                currentOffsetPx.value = from + (to - from) * eased
+                currentOffsetPx.value = from + (to - from) * easeOutCubic(progress)
 
                 if (progress < 1) {
-                    animationFrameId.value = requestAnimationFrame(step)
+                    animationFrameId = requestAnimationFrame(tick)
                     return
                 }
 
-                animationFrameId.value = null
+                animationFrameId = null
                 resolve()
             }
 
-            animationFrameId.value = requestAnimationFrame(step)
+            animationFrameId = requestAnimationFrame(tick)
         })
     }
 
-    const getCellStepPx = () => {
-        const firstCard = trackRef.value?.querySelector<HTMLElement>('.roulette-card')
-        if (!firstCard) {
-            return options.fallbackCellWidthPx + options.fallbackCellGapPx
+    const getCellMetrics = (): CellMetrics => {
+        const track = trackRef.value
+        const firstCard = track?.querySelector<HTMLElement>('.roulette-card')
+        if (!track || !firstCard) {
+            return {
+                step: options.fallbackCellWidthPx + options.fallbackCellGapPx,
+                width: options.fallbackCellWidthPx,
+                firstCardOffset: 0
+            }
         }
 
+        // translate3d одинаково сдвигает трек и карточки — разность left не зависит от текущего offset
+        const trackRect = track.getBoundingClientRect()
+        const firstCardRect = firstCard.getBoundingClientRect()
         const secondCard = firstCard.nextElementSibling as HTMLElement | null
-        if (secondCard) {
-            return secondCard.getBoundingClientRect().left - firstCard.getBoundingClientRect().left
+
+        return {
+            firstCardOffset: firstCardRect.left - trackRect.left,
+            width: firstCardRect.width,
+            step: secondCard ? secondCard.getBoundingClientRect().left - firstCardRect.left : firstCardRect.width + options.fallbackCellGapPx
         }
-
-        const trackStyles = trackRef.value ? getComputedStyle(trackRef.value) : null
-        const gapValue = trackStyles?.columnGap || trackStyles?.gap || '0'
-        const parsedGap = Number.parseFloat(gapValue)
-        const gap = Number.isFinite(parsedGap) ? parsedGap : options.fallbackCellGapPx
-
-        return firstCard.getBoundingClientRect().width + gap
     }
 
-    const getViewportCenter = () => (viewportRef.value?.clientWidth ?? 0) / 2
+    const getPointerX = () => {
+        const custom = options.getPointerCenterX?.()
+        return custom ?? (viewportRef.value?.clientWidth ?? 0) / 2
+    }
 
-    const getOffsetBySlot = (slotIndex: number, cellStepPx: number) => {
-        return slotIndex * cellStepPx + cellStepPx / 2 - getViewportCenter()
+    // Случайное смещение pointer внутри ячейки (±35% от ширины)
+    const getJitter = (cellWidthPx: number) => (Math.random() * 2 - 1) * cellWidthPx * 0.35
+
+    // Трековый offset при котором центр ячейки slotIndex совпадает с pointer (+ опциональный jitter)
+    const slotToOffset = ({ step, width, firstCardOffset }: CellMetrics, slotIndex: number, jitter = 0) => {
+        return firstCardOffset + slotIndex * step + width / 2 + jitter - getPointerX()
     }
 
     const alignToActiveSlot = () => {
-        if (isRolling.value || activeSlotIndex.value === null) {
-            return
-        }
-
-        currentOffsetPx.value = getOffsetBySlot(activeSlotIndex.value, getCellStepPx())
+        if (isRolling.value || activeSlotIndex === null) return
+        const metrics = getCellMetrics()
+        const offset = slotToOffset(metrics, activeSlotIndex)
+        currentOffsetPx.value = offset
+        baseOffsetPx = offset
     }
 
-    const normalizeCellIndex = (targetCellIndex: number) => {
-        if (options.cellCount <= 0) {
-            return 0
-        }
-
-        const normalized = targetCellIndex % options.cellCount
-        return normalized < 0 ? normalized + options.cellCount : normalized
+    const normalizeCellIndex = (index: number) => {
+        if (options.cellCount <= 0) return 0
+        const n = index % options.cellCount
+        return n < 0 ? n + options.cellCount : n
     }
 
     const startSpin = async (targetCellIndex: number): Promise<RouletteSpinResult | null> => {
-        if (isRolling.value || options.cellCount <= 0) {
-            return null
-        }
+        if (isRolling.value || options.cellCount <= 0) return null
 
         stopAnimationFrame()
         isRolling.value = true
-        activeSlotIndex.value = null
+        activeSlotIndex = null
 
-        const cellStep = getCellStepPx()
-        const fromOffset = currentOffsetPx.value
+        currentOffsetPx.value = 0
+        baseOffsetPx = 0
+
+        const metrics = getCellMetrics()
+        const jitter = getJitter(metrics.width)
         const selectedCellIndex = normalizeCellIndex(targetCellIndex)
-        const fullLoops = options.maxFullLoops
         const maxSlot = totalSlots.value - 1
-        let targetSlot = fullLoops * options.cellCount + selectedCellIndex
-        let targetOffset = getOffsetBySlot(targetSlot, cellStep)
 
-        while (targetOffset <= fromOffset + cellStep * 2 && targetSlot + options.cellCount <= maxSlot) {
+        // Начинаем с позиции после maxFullLoops полных оборотов
+        let targetSlot = options.maxFullLoops * options.cellCount + selectedCellIndex
+
+        // Гарантируем достаточное расстояние прокрутки от текущей позиции
+        while (slotToOffset(metrics, targetSlot) <= baseOffsetPx + metrics.step * 2 && targetSlot + options.cellCount <= maxSlot) {
             targetSlot += options.cellCount
-            targetOffset = getOffsetBySlot(targetSlot, cellStep)
         }
 
+        // Не выходим за пределы ленты
         while (targetSlot > maxSlot) {
             targetSlot -= options.cellCount
         }
 
-        targetOffset = getOffsetBySlot(targetSlot, cellStep)
+        const cleanTargetOffset = slotToOffset(metrics, targetSlot)
+        const targetOffset = cleanTargetOffset + jitter
 
-        await animateOffset(fromOffset, targetOffset, options.spinDurationMs)
+        await animateOffset(currentOffsetPx.value, targetOffset, options.spinDurationMs)
         currentOffsetPx.value = targetOffset
-        activeSlotIndex.value = targetSlot
+        baseOffsetPx = cleanTargetOffset
+        activeSlotIndex = targetSlot
         isRolling.value = false
 
-        return {
-            selectedCellIndex,
-            selectedSlotIndex: targetSlot
-        }
+        return { selectedCellIndex, selectedSlotIndex: targetSlot }
     }
 
     onMounted(() => {
-        if (!viewportRef.value) {
-            return
-        }
-
-        resizeObserver = new ResizeObserver(() => {
-            alignToActiveSlot()
-        })
+        if (!viewportRef.value) return
+        resizeObserver = new ResizeObserver(alignToActiveSlot)
         resizeObserver.observe(viewportRef.value)
     })
 
@@ -157,11 +167,5 @@ export const useRouletteSpin = (options: UseRouletteSpinOptions) => {
         resizeObserver = null
     })
 
-    return {
-        viewportRef,
-        trackRef,
-        trackStyle,
-        isRolling,
-        startSpin
-    }
+    return { viewportRef, trackRef, trackStyle, isRolling, startSpin }
 }

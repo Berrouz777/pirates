@@ -8,3 +8,5 @@ export const FILL_DURATION_MS = 400
 
 export const SPIN_OUT_STEP_MS = 8
 export const SPAWN_STEP_MS = 8
+
+export const BONUS_PROGRESS_FULL_PAUSE_MS = 600

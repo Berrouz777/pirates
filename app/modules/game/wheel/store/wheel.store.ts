@@ -1,32 +1,17 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
 
-import type { ActiveBonusEffect, AnimationMeta, BonusRouletteResult, CellValue, GamePhase, WinResult } from '../types'
-
-import { DEFAULT_BET, START_BALANCE } from '../constants'
-import {
-    useActiveBonus,
-    useAnimationTimings,
-    useBonusRoulette,
-    useBoardFactory,
-    useBoardGravity,
-    useRewardAnimation,
-    useSpinBoardAnimation,
-    useWinningChains
-} from '../composables'
-
-const createEmptyAnimationMeta = (): AnimationMeta => ({
-    removingIndices: [],
-    spawnIndices: [],
-    fallOffsetsByIndex: {},
-    rewardAnimations: []
-})
+import type { ActiveBonusEffect, AnimationMeta, BonusRouletteResult, CellValue, GamePhase } from '../types'
+import { BONUS_PROGRESS_FULL_PAUSE_MS, DEFAULT_BET, START_BALANCE } from '../constants'
+import { useActiveBonus, useAnimationTimings, useMoneyUtils, useSpinScenario } from '../composables'
+import { useWheelApi } from '../api/wheel.api'
 
 export const useWheelStore = defineStore('wheel', () => {
+    // State
     const board = ref<CellValue[]>([])
     const isSpinning = ref<boolean>(false)
+    const isInitializing = ref<boolean>(false)
     const isAutoSpinning = ref<boolean>(false)
-    const lastWins = ref<WinResult[]>([])
     const lastWinAmount = ref<number>(0)
     const balance = ref<number>(START_BALANCE)
     const bet = ref<number>(DEFAULT_BET)
@@ -36,100 +21,111 @@ export const useWheelStore = defineStore('wheel', () => {
     const isBonusAnimationPlaying = ref<boolean>(false)
     const bonusRouletteResult = ref<BonusRouletteResult | null>(null)
     const activeBonusEffect = ref<ActiveBonusEffect | null>(null)
+    const pendingBonusEffect = ref<ActiveBonusEffect | null>(null)
+    const pendingCashWin = ref<number>(0)
     const phase = ref<GamePhase>('idle')
-    const animationMeta = ref<AnimationMeta>(createEmptyAnimationMeta())
+    const animationMeta = ref<AnimationMeta>({ removingIndices: [], spawnIndices: [], fallOffsetsByIndex: {}, rewardAnimations: [] })
 
-    const { sleep, getSpinOutTotalDuration, getSpawnTotalDuration } = useAnimationTimings()
-    const { createBoard, refillEmptyWithMeta } = useBoardFactory()
-    const { applyGravity } = useBoardGravity()
-    const { triggerRewardAnimation } = useRewardAnimation({ animationMeta, sleep })
-    const resetAnimationMeta = () => {
-        animationMeta.value = createEmptyAnimationMeta()
-    }
+    // Composables
+    const api = useWheelApi()
+    const { sleep } = useAnimationTimings()
+    const { roundMoney } = useMoneyUtils()
 
-    const { hasFreeSpinAvailable, consumeActiveBonusSpin, getWinRewardMultiplier } = useActiveBonus({
-        activeBonusEffect
-    })
-
-    const { prepareBonusRouletteResult, applyBonusRouletteResult, clearBonusRouletteResult } = useBonusRoulette({
-        bet,
-        bonusRouletteResult,
-        activeBonusEffect
-    })
-
-    const { applyGravityAndRefillWithAnimation, prepareSpinBoardWithAnimation } = useSpinBoardAnimation({
+    const { applyScenarioAnimations, resetAnimationMeta } = useSpinScenario({
         board,
-        animationMeta,
         phase,
-        isSpinning,
-        lastWins,
-        lastWinAmount,
-        sleep,
-        getSpinOutTotalDuration,
-        getSpawnTotalDuration,
-        createBoard,
-        refillEmptyWithMeta,
-        applyGravity,
-        resetAnimationMeta
-    })
-
-    const initBoard = () => {
-        board.value = createBoard({ avoidWin: true })
-        lastWins.value = []
-        lastWinAmount.value = 0
-        balance.value = START_BALANCE
-        bet.value = DEFAULT_BET
-        bonusProgress.value = 0
-        bonusIntroTrigger.value = 0
-        isBonusMode.value = false
-        isBonusAnimationPlaying.value = false
-        bonusRouletteResult.value = null
-        activeBonusEffect.value = null
-        phase.value = 'idle'
-        resetAnimationMeta()
-        isSpinning.value = false
-        isAutoSpinning.value = false
-    }
-
-    const { processWinningChains } = useWinningChains({
-        board,
         animationMeta,
-        phase,
-        bonusProgress,
         lastWinAmount,
-        getWinRewardMultiplier,
-        sleep,
-        triggerRewardAnimation,
-        applyGravityAndRefillWithAnimation,
-        onBonusGameTriggered: () => {
-            stopAutoSpin()
-            isBonusMode.value = true
-            bonusIntroTrigger.value += 1
+        onDropProgress: (progress) => {
+            bonusProgress.value = progress
         }
     })
 
-    // Основной метод спина: запускает анимации и сохраняет результаты выигрышей
+    const { hasFreeSpinAvailable } = useActiveBonus({ activeBonusEffect })
+
+    // Actions
+    const prepareBonusRouletteResult = () => bonusRouletteResult.value
+
+    const applyBonusRouletteResult = () => {
+        activeBonusEffect.value = pendingBonusEffect.value
+        pendingBonusEffect.value = null
+        if (pendingCashWin.value > 0) {
+            lastWinAmount.value = roundMoney(lastWinAmount.value + pendingCashWin.value)
+            pendingCashWin.value = 0
+        }
+    }
+
+    const clearBonusRouletteResult = () => {
+        bonusRouletteResult.value = null
+        pendingCashWin.value = 0
+    }
+
+    const initBoard = async () => {
+        isInitializing.value = true
+        try {
+            const initResponse = await api.init()
+            board.value = [...initResponse.board]
+            lastWinAmount.value = 0
+            balance.value = initResponse.balance ?? START_BALANCE
+            bet.value = initResponse.bet ?? DEFAULT_BET
+            bonusProgress.value = initResponse.bonusProgress
+            bonusIntroTrigger.value = 0
+            isBonusMode.value = false
+            isBonusAnimationPlaying.value = false
+            bonusRouletteResult.value = null
+            activeBonusEffect.value = initResponse.activeBonusEffect
+            pendingBonusEffect.value = null
+            pendingCashWin.value = 0
+            phase.value = 'idle'
+            resetAnimationMeta()
+            isSpinning.value = false
+            isAutoSpinning.value = false
+        } finally {
+            isInitializing.value = false
+        }
+    }
+
     const spin = async () => {
         const currentBet = bet.value
-        const isFreeSpin = hasFreeSpinAvailable()
-        if (isSpinning.value || (!isFreeSpin && balance.value < currentBet)) {
+        if (isSpinning.value || (!hasFreeSpinAvailable() && balance.value < currentBet)) {
             return
         }
 
-        if (!isFreeSpin) {
-            balance.value -= currentBet
-        }
-        const preparedBoard = await prepareSpinBoardWithAnimation()
-        const { wins } = await processWinningChains(preparedBoard)
+        isSpinning.value = true
 
-        lastWins.value = wins
-        resetAnimationMeta()
-        phase.value = 'idle'
-        isSpinning.value = false
-        consumeActiveBonusSpin()
+        try {
+            const scenario = await api.spin({ bet: currentBet })
+
+            // Баланс берём как есть от сервера, списывается только ставка
+            balance.value = scenario.balance
+
+            await applyScenarioAnimations(scenario)
+
+            if (scenario.bonusTriggered) {
+                await sleep(BONUS_PROGRESS_FULL_PAUSE_MS)
+                bonusProgress.value = 0
+                stopAutoSpin()
+                // Сохраняем эффект от сервера — применится после анимации рулетки
+                pendingBonusEffect.value = scenario.activeBonusEffect
+                bonusRouletteResult.value = scenario.bonusRouletteResult
+                pendingCashWin.value = scenario.bonusRouletteResult?.prizeType === 'cash' ? (scenario.bonusRouletteResult.cashAmount ?? 0) : 0
+                const winBeforeRoulette = pendingCashWin.value > 0 && scenario.win >= pendingCashWin.value ? scenario.win - pendingCashWin.value : scenario.win
+                lastWinAmount.value = roundMoney(winBeforeRoulette)
+                isBonusMode.value = true
+                bonusIntroTrigger.value += 1
+            } else {
+                activeBonusEffect.value = scenario.activeBonusEffect
+                pendingCashWin.value = 0
+                lastWinAmount.value = scenario.win
+            }
+        } finally {
+            resetAnimationMeta()
+            phase.value = 'idle'
+            isSpinning.value = false
+        }
     }
 
-    function stopAutoSpin() {
+    const stopAutoSpin = () => {
         isAutoSpinning.value = false
     }
 
@@ -150,8 +146,8 @@ export const useWheelStore = defineStore('wheel', () => {
     return {
         board,
         isSpinning,
+        isInitializing,
         isAutoSpinning,
-        lastWins,
         lastWinAmount,
         balance,
         bet,

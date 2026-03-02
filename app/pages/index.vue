@@ -26,12 +26,14 @@
     // Bindings
     const wheelStore = useWheelStore()
     const { spin, initBoard } = wheelStore
-    const { board, isSpinning, isBonusAnimationPlaying, phase, animationMeta, balance, lastWinAmount } = storeToRefs(wheelStore)
-    const isControlsLocked = computed(() => isSpinning.value || isBonusAnimationPlaying.value)
+    const { board, isSpinning, isInitializing, isBonusAnimationPlaying, phase, animationMeta, balance, lastWinAmount } = storeToRefs(wheelStore)
+    const isControlsLocked = computed(() => isInitializing.value || isSpinning.value || isBonusAnimationPlaying.value)
     const { gameStretchShellRef, gameContainerRef, gameContainerStyle } = useMobileGameStretch({ mobileMaxWidth: 599 })
 
-    // Hooks
-    onMounted(() => initBoard())
+    await useAsyncData('pirates-init', async () => {
+        await initBoard()
+        return true
+    })
 </script>
 
 <style scoped>

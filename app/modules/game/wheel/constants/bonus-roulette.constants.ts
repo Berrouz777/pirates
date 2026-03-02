@@ -3,7 +3,7 @@ import type { BonusRouletteCellKey } from '../types'
 export const BONUS_ROULETTE_CELLS: BonusRouletteCellKey[] = [
     'empty',
     'freespin-5',
-    'multiple-15',
+    'multiple-1.5',
     'multiple-2',
     'multiple-5',
     'cash-10',
@@ -14,8 +14,8 @@ export const BONUS_ROULETTE_CELLS: BonusRouletteCellKey[] = [
     'cash-1000'
 ]
 
-export const MULTIPLE_VALUE_BY_KEY: Record<'multiple-15' | 'multiple-2' | 'multiple-5', number> = {
-    'multiple-15': 1.5,
+export const MULTIPLE_VALUE_BY_KEY: Record<'multiple-1.5' | 'multiple-2' | 'multiple-5', number> = {
+    'multiple-1.5': 1.5,
     'multiple-2': 2,
     'multiple-5': 5
 }
