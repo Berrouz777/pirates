@@ -1,6 +1,6 @@
 import { computed, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
-import { useWheelStore, type BonusRouletteResult } from '~/modules/game/wheel'
+import { useWheelFlow, useWheelStore, type BonusRouletteResult } from '~/modules/game/wheel'
 import { SIGNBOARD_DROP_OUT_DURATION_MS, SIGNBOARD_SWAP_DELAY_MS } from '~/modules/panels/header/constants/animation.constants'
 import {
     formatFreespinsText,
@@ -25,6 +25,7 @@ const DEFAULT_VARIANT: HeaderSignboardVariant = 'BIG_WIN'
 export const useHeaderBonusFlow = () => {
     const wheelStore = useWheelStore()
     const { activeBonusEffect, bonusIntroTrigger, bonusRouletteResult } = storeToRefs(wheelStore)
+    const { applyBonusRouletteResult, prepareBonusRouletteResult, clearBonusRouletteResult } = useWheelFlow()
 
     const currentVariant = ref<HeaderSignboardVariant>(DEFAULT_VARIANT)
     const animationState = ref<HeaderSignboardAnimationState>('entering')
@@ -60,7 +61,7 @@ export const useHeaderBonusFlow = () => {
     }
 
     const applyResultVariant = async (result: BonusRouletteResult) => {
-        wheelStore.applyBonusRouletteResult()
+        applyBonusRouletteResult()
 
         animationState.value = 'entering'
         bonusFlowPhase.value = 'result'
@@ -102,7 +103,7 @@ export const useHeaderBonusFlow = () => {
             animationState.value = 'entering'
             bonusFlowPhase.value = 'bonus-label'
 
-            const preparedResult = wheelStore.prepareBonusRouletteResult()
+            const preparedResult = prepareBonusRouletteResult()
             if (!preparedResult) {
                 wheelStore.isBonusMode = false
                 return
@@ -126,7 +127,7 @@ export const useHeaderBonusFlow = () => {
 
             await applyResultVariant(preparedResult)
             wheelStore.isBonusMode = false
-            wheelStore.clearBonusRouletteResult()
+            clearBonusRouletteResult()
         } finally {
             wheelStore.isBonusAnimationPlaying = false
             bonusFlowPhase.value = 'idle'

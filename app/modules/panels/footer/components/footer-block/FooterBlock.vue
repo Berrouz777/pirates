@@ -48,7 +48,7 @@
 <script setup lang="ts">
     import { computed, ref, watch } from 'vue'
     import { storeToRefs } from 'pinia'
-    import { useWheelStore } from '~/modules/game/wheel'
+    import { useWheelFlow, useWheelStore } from '~/modules/game/wheel'
 
     import { useBetControls } from '../buttons/composables/use-bet-controls'
 
@@ -75,7 +75,7 @@
     const wheelStore = useWheelStore()
     const { bet, isAutoSpinning } = storeToRefs(wheelStore)
     const { decreaseBet, increaseBet, setBetToMin, setBetToMax, minBet, maxBet } = useBetControls({ bet })
-    const { startAutoSpin, stopAutoSpin } = wheelStore
+    const { startAutoSpin, stopAutoSpin } = useWheelFlow()
     const isStoppingAutoSpin = ref(false)
 
     const isAtMinBet = computed(() => bet.value <= minBet)

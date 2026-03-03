@@ -17,7 +17,7 @@
 </template>
 
 <script setup lang="ts">
-    import { GameBoard, useWheelStore } from '~/modules/game/wheel'
+    import { GameBoard, useWheelFlow, useWheelStore } from '~/modules/game/wheel'
     import { FooterBlock } from '~/modules/panels/footer'
     import { HeaderBlock } from '~/modules/panels/header'
     import { useMobileGameStretch } from '~/shared/composables/utils/useMobileGameStretch'
@@ -25,8 +25,8 @@
 
     // Bindings
     const wheelStore = useWheelStore()
-    const { spin, initBoard } = wheelStore
     const { board, isSpinning, isInitializing, isBonusAnimationPlaying, phase, animationMeta, balance, lastWinAmount } = storeToRefs(wheelStore)
+    const { spin, initBoard } = useWheelFlow()
     const isControlsLocked = computed(() => isInitializing.value || isSpinning.value || isBonusAnimationPlaying.value)
     const { gameStretchShellRef, gameContainerRef, gameContainerStyle } = useMobileGameStretch({ mobileMaxWidth: 599 })
 
