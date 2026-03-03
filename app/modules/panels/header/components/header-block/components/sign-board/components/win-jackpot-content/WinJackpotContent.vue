@@ -1,7 +1,5 @@
 <template>
     <div class="flex h-full w-full items-center justify-center">
-        <SvgShine class="absolute inset-0 h-full w-full -translate-y-[35%] translate-x-[10%] scale-[2]" />
-
         <div class="glow-ellipse pointer-events-none absolute left-0 right-0 top-[42%] mx-auto h-[55%] w-[70%] rounded-[50%] opacity-[0.7]" />
 
         <img :src="blueButtonImage" alt="blue button image" class="absolute left-0 right-0 top-[12%] mx-auto h-[33%] w-[75%] object-contain" />
@@ -18,8 +16,6 @@
 
 <script setup lang="ts">
     import type { HeaderSignboardText } from '~/modules/panels/header/types/header-signboard.types'
-
-    import SvgShine from '../svg-shine/SvgShine.vue'
     import blueButtonImage from '~/assets/images/header/blue-button.png'
 
     interface BonusGameContentProps {
