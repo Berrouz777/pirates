@@ -1,18 +1,25 @@
 import type { InitGameResponse, SpinRequest, SpinScenarioResponse } from '../types'
+import { useApi } from '~/shared/composables/utils/useApi'
 
 export const useWheelApi = () => {
+    const { makeRequest } = useApi()
+
     const init = (): Promise<InitGameResponse> => {
-        return $fetch<InitGameResponse>('/api/pirates/init')
+        return makeRequest<InitGameResponse>('/api/pirates/init', {
+            throwError: true,
+            showErrorToast: true
+        })
     }
 
-    const spin = async (body: SpinRequest): Promise<SpinScenarioResponse> => {
-        console.log('[spin] request →', body)
-        const response = await $fetch<SpinScenarioResponse>('/api/pirates/spin', {
-            method: 'POST',
-            body
+    const spin = (body: SpinRequest): Promise<SpinScenarioResponse> => {
+        return makeRequest<SpinScenarioResponse>('/api/pirates/spin', {
+            fetchOptions: {
+                method: 'POST',
+                body
+            },
+            throwError: true,
+            showErrorToast: true
         })
-        console.log('[spin] response ←', JSON.parse(JSON.stringify(response)))
-        return response
     }
 
     return {
