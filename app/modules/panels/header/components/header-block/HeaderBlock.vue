@@ -1,7 +1,7 @@
 <template>
     <div class="relative h-full min-h-[23.8%] w-full overflow-hidden">
         <img alt="header image" :src="bgImage" class="h-full w-full object-contain" />
-        <SignBoard v-show="isSignBoardVisible" class="z-20" :animation-state="animationState">
+        <SignBoard v-show="isSignBoardVisible" :animation-state="animationState" :has-shine="currentVariant !== 'BIG_WIN' && currentVariant !== 'BONUS_GAME'">
             <Transition :name="signContentTransitionName" :mode="signContentTransitionMode">
                 <component :is="currentContentComponent" :key="currentContentKey" :text="currentText" />
             </Transition>

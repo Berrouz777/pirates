@@ -2,6 +2,7 @@
     <div class="absolute -top-[14%] bottom-0 left-0 right-0 m-auto h-full w-[95%] [perspective:1200px]">
         <div class="header-sign relative h-full w-full" :class="signBoardClassNames" :style="animationCssVars">
             <img :src="tableImage" alt="header image" class="h-full w-full object-contain" />
+            <SvgShine v-if="hasShine" class="pointer-events-none absolute inset-0 h-full w-full -translate-y-[35%] translate-x-[10%] scale-[2]" />
             <div class="pointer-events-none absolute inset-0">
                 <slot />
             </div>
@@ -10,7 +11,7 @@
 </template>
 
 <script setup lang="ts">
-    import { computed } from 'vue'
+    import { computed, toRefs } from 'vue'
 
     import tableImage from '~/assets/images/header/top-table.png'
     import {
@@ -19,12 +20,15 @@
         SIGNBOARD_DROP_OUT_DURATION_MS
     } from '~/modules/panels/header/constants/animation.constants'
     import type { HeaderSignboardAnimationState } from '~/modules/panels/header/types/header-signboard.types'
+    import SvgShine from './components/svg-shine/SvgShine.vue'
 
     interface HeaderSignboardProps {
         animationState: HeaderSignboardAnimationState
+        hasShine: boolean
     }
 
     const props = defineProps<HeaderSignboardProps>()
+    const { hasShine } = toRefs(props)
 
     const signBoardClassNames = computed(() => ({
         'header-sign--entering': props.animationState === 'entering',
