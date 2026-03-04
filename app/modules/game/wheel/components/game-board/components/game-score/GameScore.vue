@@ -6,7 +6,7 @@
             <div class="relative flex h-full items-center justify-between">
                 <p class="font-cuprum text-game-base text-white">{{ $t('pirates.game.balance') }}: {{ balance }}</p>
                 <p v-if="isMultipleBonusActive" class="pointer-events-none absolute left-[46%] top-[32%] font-cuprum text-game-base text-[#ffe788]">
-                    ({{ remainingMultipleSpins }}/10)
+                    {{ remainingMultipleSpins }}/10
                 </p>
                 <div class="relative">
                     <p class="font-cuprum text-game-base text-white">{{ $t('pirates.game.win') }}: {{ win }}</p>
