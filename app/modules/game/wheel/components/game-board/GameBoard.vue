@@ -2,7 +2,7 @@
     <div ref="boardRef" class="relative w-full rounded-tl-[3%] rounded-tr-[3%] bg-[#EDD3B2] px-[1.5%] pt-[3%]">
         <GameScore :balance="balance" :win="win" />
 
-        <div data-game-grid class="grid h-full w-full grid-cols-7 grid-rows-7 gap-1 overflow-hidden bg-[#EDD3B2] px-[3%] py-[1%]">
+        <div data-game-grid class="grid h-full w-full grid-cols-7 grid-rows-7 gap-1 overflow-hidden bg-[#EDD3B2] px-[3%] py-[1%]" :style="gameGridStyle">
             <GameCell
                 v-for="(cell, index) in cells"
                 :key="index"
@@ -37,6 +37,7 @@
         animationMeta: AnimationMeta
         balance: number
         win: number
+        inverseScaleX?: number
     }
 
     const props = defineProps<GameBoardProps>()
@@ -50,6 +51,11 @@
 
         return Array.from({ length: BOARD_SIZE }, () => null)
     })
+
+    const gameGridStyle = computed(() => ({
+        transform: props.inverseScaleX && props.inverseScaleX !== 1 ? `scaleX(${props.inverseScaleX})` : 'none',
+        transformOrigin: 'center center'
+    }))
 
     const isBackgroundCell = (index: number): boolean => {
         const row = Math.floor(index / GRID_SIZE)

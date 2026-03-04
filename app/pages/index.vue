@@ -7,7 +7,14 @@
                 <HeaderBlock />
 
                 <div class="relative w-full">
-                    <GameBoard :board="board" :phase="phase" :animation-meta="animationMeta" :balance="balance" :win="lastWinAmount" />
+                    <GameBoard
+                        :board="board"
+                        :phase="phase"
+                        :animation-meta="animationMeta"
+                        :balance="balance"
+                        :win="lastWinAmount"
+                        :inverse-scale-x="boardInverseScaleX"
+                    />
                 </div>
 
                 <FooterBlock :is-spinning="isSpinning" :is-controls-locked="isControlsLocked" @spin="spin" />
@@ -35,7 +42,8 @@
     const hasFreeSpinAvailableRef = computed(() => hasFreeSpinAvailable())
 
     const isControlsLocked = computed(() => isInitializing.value || isSpinning.value || isBonusAnimationPlaying.value || hasFreeSpinAvailableRef.value)
-    const { gameStretchShellRef, gameContainerRef, gameContainerStyle } = useMobileGameStretch({ mobileMaxWidth: 599 })
+    const { gameStretchShellRef, gameContainerRef, gameContainerStyle, gameScaleX } = useMobileGameStretch({ mobileMaxWidth: 599 })
+    const boardInverseScaleX = computed(() => (gameScaleX.value > 1 ? 1 / gameScaleX.value : 1))
 
     watch(
         () => hasFreeSpinAvailableRef.value,
