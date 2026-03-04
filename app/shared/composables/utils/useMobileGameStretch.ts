@@ -54,6 +54,7 @@ export const useMobileGameStretch = (options: UseMobileGameStretchOptions = {}) 
     return {
         gameStretchShellRef,
         gameContainerRef,
+        gameScaleX,
         gameContainerStyle,
         updateMobileScale
     }
