@@ -5,9 +5,11 @@
         <div ref="gameStretchShellRef" class="game-stretch-shell">
             <div ref="gameContainerRef" :style="gameContainerStyle" class="game-container flex flex-col items-center justify-center bg-[#57d5e8]">
                 <HeaderBlock />
+
                 <div class="relative w-full">
                     <GameBoard :board="board" :phase="phase" :animation-meta="animationMeta" :balance="balance" :win="lastWinAmount" />
                 </div>
+
                 <FooterBlock :is-spinning="isSpinning" :is-controls-locked="isControlsLocked" @spin="spin" />
             </div>
         </div>
@@ -17,7 +19,7 @@
 </template>
 
 <script setup lang="ts">
-    import { GameBoard, useWheelFlow, useWheelStore } from '~/modules/game/wheel'
+    import { GameBoard, useActiveBonus, useWheelFlow, useWheelStore } from '~/modules/game/wheel'
     import { FooterBlock } from '~/modules/panels/footer'
     import { HeaderBlock } from '~/modules/panels/header'
     import { useMobileGameStretch } from '~/shared/composables/utils/useMobileGameStretch'
@@ -25,10 +27,28 @@
 
     // Bindings
     const wheelStore = useWheelStore()
-    const { board, isSpinning, isInitializing, isBonusAnimationPlaying, phase, animationMeta, balance, lastWinAmount } = storeToRefs(wheelStore)
+    const { board, isSpinning, isInitializing, isBonusAnimationPlaying, phase, animationMeta, balance, lastWinAmount, activeBonusEffect } =
+        storeToRefs(wheelStore)
     const { spin, initBoard } = useWheelFlow()
-    const isControlsLocked = computed(() => isInitializing.value || isSpinning.value || isBonusAnimationPlaying.value)
+    const { hasFreeSpinAvailable } = useActiveBonus({ activeBonusEffect })
+
+    const hasFreeSpinAvailableRef = computed(() => hasFreeSpinAvailable())
+
+    const isControlsLocked = computed(() => isInitializing.value || isSpinning.value || isBonusAnimationPlaying.value || hasFreeSpinAvailableRef.value)
     const { gameStretchShellRef, gameContainerRef, gameContainerStyle } = useMobileGameStretch({ mobileMaxWidth: 599 })
+
+    watch(
+        () => hasFreeSpinAvailableRef.value,
+        async (hasFreeSpins, hadFreeSpinsBefore) => {
+            if (!hasFreeSpins || hadFreeSpinsBefore) {
+                return
+            }
+
+            while (hasFreeSpinAvailable()) {
+                await spin()
+            }
+        }
+    )
 
     await useAsyncData('pirates-init', async () => {
         await initBoard()
