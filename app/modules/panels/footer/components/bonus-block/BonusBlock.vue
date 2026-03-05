@@ -11,7 +11,7 @@
                 />
             </div>
         </div>
-        <img :src="bonusImage" alt="bonus image" class="pointer-events-none z-[2] h-full w-[30%] object-contain" />
+        <img :src="bonusImage" alt="bonus image" data-bonus-target class="pointer-events-none z-[2] h-full w-[30%] object-contain" />
     </div>
 </template>
 

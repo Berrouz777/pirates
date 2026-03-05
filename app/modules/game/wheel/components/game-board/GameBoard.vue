@@ -16,6 +16,7 @@
         </div>
 
         <GameReward :rewards="animationMeta.rewardAnimations" :board-element="boardRef" />
+        <BonusFlightOverlay :flights="animationMeta.bonusFlightAnimations" :board-element="boardRef" />
     </div>
 </template>
 
@@ -27,6 +28,7 @@
     import { BOARD_SIZE, GRID_SIZE, SPAWN_STEP_MS, SPIN_OUT_STEP_MS } from '../../constants'
     import { useAnimationTimings } from '../../composables'
 
+    import BonusFlightOverlay from './components/bonus-flight-overlay/BonusFlightOverlay.vue'
     import GameCell from './components/game-cell/GameCell.vue'
     import GameReward from './components/game-reward/GameReward.vue'
     import GameScore from './components/game-score/GameScore.vue'
