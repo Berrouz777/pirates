@@ -1,7 +1,15 @@
 import type { Ref } from 'vue'
 
 import type { AnimationMeta, CellValue, GamePhase, SpinDrop, SpinScenarioResponse } from '../types'
-import { BOARD_SIZE, CLEAR_DURATION_MS, FALL_DURATION_MS, getRewardOverlapMs } from '../constants'
+import {
+    BOARD_SIZE,
+    BONUS_FLIGHT_DURATION_MS,
+    BONUS_FLIGHT_STEP_MS,
+    CLEAR_DURATION_MS,
+    FALL_DURATION_MS,
+    REWARD_FLY_START_DELAY_MS,
+    getRewardOverlapMs
+} from '../constants'
 import { useAnimationTimings } from './use-animation-timings'
 import { useBoardGravity } from './use-board-gravity'
 import { useBoardUtils } from './use-board-utils'
@@ -19,7 +27,10 @@ const createEmptyAnimationMeta = (): AnimationMeta => ({
     removingIndices: [],
     spawnIndices: [],
     fallOffsetsByIndex: {},
-    rewardAnimations: []
+    rewardAnimations: [],
+    bonusHoverIndices: [],
+    hiddenBonusIndices: [],
+    bonusFlightAnimations: []
 })
 
 export const useSpinScenario = ({ board, phase, animationMeta, lastWinAmount, onDropProgress }: UseSpinScenarioOptions) => {
@@ -27,9 +38,30 @@ export const useSpinScenario = ({ board, phase, animationMeta, lastWinAmount, on
     const { applyGravity } = useBoardGravity()
     const { buildBoardFromCounts, getNullIndices, findGroupIndices, findBonusGameIndices } = useBoardUtils()
     const { triggerRewardAnimation } = useRewardAnimation({ animationMeta, sleep })
+    let bonusFlightId = 0
+    const BONUS_FLIGHT_SNAPSHOT_GUARD_MS = 24
 
     const resetAnimationMeta = () => {
         animationMeta.value = createEmptyAnimationMeta()
+    }
+
+    const triggerBonusFlights = (bonusIndices: number[]) => {
+        if (bonusIndices.length === 0) {
+            return
+        }
+
+        const uniqueBonusIndices = Array.from(new Set(bonusIndices))
+        const bonusFlightAnimations = uniqueBonusIndices.map((sourceIndex, order) => ({
+            id: bonusFlightId++,
+            sourceIndex,
+            startDelayMs: order * BONUS_FLIGHT_STEP_MS
+        }))
+
+        animationMeta.value = {
+            ...animationMeta.value,
+            hiddenBonusIndices: uniqueBonusIndices,
+            bonusFlightAnimations
+        }
     }
 
     const spawnInitialBoard = async (firstDrop: SpinDrop) => {
@@ -51,15 +83,36 @@ export const useSpinScenario = ({ board, phase, animationMeta, lastWinAmount, on
             ...animationMeta.value,
             removingIndices: allRemoving,
             spawnIndices: [],
-            fallOffsetsByIndex: {}
+            fallOffsetsByIndex: {},
+            bonusHoverIndices: bonusIndices,
+            hiddenBonusIndices: [],
+            bonusFlightAnimations: []
         }
         phase.value = 'clearing'
 
-        triggerRewardAnimation()
-        await sleep(Math.max(CLEAR_DURATION_MS, getRewardOverlapMs()))
+        triggerRewardAnimation({
+            onFlyingStart: () => {
+                triggerBonusFlights(bonusIndices)
+            }
+        })
+
+        const hasBonuses = bonusIndices.length > 0
+        const lastBonusStartOffset = hasBonuses ? (bonusIndices.length - 1) * BONUS_FLIGHT_STEP_MS : 0
+        const totalBonusFlightTime = hasBonuses ? BONUS_FLIGHT_DURATION_MS + lastBonusStartOffset : 0
+        const clearDelay = hasBonuses ? REWARD_FLY_START_DELAY_MS + totalBonusFlightTime + BONUS_FLIGHT_SNAPSHOT_GUARD_MS : getRewardOverlapMs()
+        await sleep(Math.max(CLEAR_DURATION_MS, clearDelay))
 
         const removingSet = new Set(allRemoving)
         board.value = board.value.map((cell, i) => (removingSet.has(i) ? null : cell))
+
+        // После полного завершения полётов бонусов очищаем бонусные метаданные,
+        // чтобы не подсвечивать/не прятать уже удалённые ячейки и убрать overlay.
+        animationMeta.value = {
+            ...animationMeta.value,
+            bonusHoverIndices: [],
+            hiddenBonusIndices: [],
+            bonusFlightAnimations: []
+        }
 
         return allRemoving
     }
@@ -72,13 +125,22 @@ export const useSpinScenario = ({ board, phase, animationMeta, lastWinAmount, on
             ...animationMeta.value,
             removingIndices: bonusOnly,
             spawnIndices: [],
-            fallOffsetsByIndex: {}
+            fallOffsetsByIndex: {},
+            bonusHoverIndices: bonusOnly,
+            hiddenBonusIndices: [],
+            bonusFlightAnimations: []
         }
         phase.value = 'clearing'
         await sleep(CLEAR_DURATION_MS)
 
         const bonusSet = new Set(bonusOnly)
         board.value = board.value.map((cell, i) => (bonusSet.has(i) ? null : cell))
+        animationMeta.value = {
+            ...animationMeta.value,
+            bonusHoverIndices: [],
+            hiddenBonusIndices: [],
+            bonusFlightAnimations: []
+        }
 
         return bonusOnly
     }

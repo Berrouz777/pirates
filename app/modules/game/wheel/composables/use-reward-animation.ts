@@ -8,10 +8,14 @@ interface UseRewardAnimationParams {
     sleep: (duration: number) => Promise<void>
 }
 
+interface TriggerRewardAnimationOptions {
+    onFlyingStart?: () => void
+}
+
 export const useRewardAnimation = ({ animationMeta, sleep }: UseRewardAnimationParams) => {
     let rewardId = 0
 
-    const triggerRewardAnimation = () => {
+    const triggerRewardAnimation = ({ onFlyingStart }: TriggerRewardAnimationOptions = {}) => {
         const currentId = rewardId++
 
         animationMeta.value = {
@@ -31,6 +35,7 @@ export const useRewardAnimation = ({ animationMeta, sleep }: UseRewardAnimationP
                 ...animationMeta.value,
                 rewardAnimations: animationMeta.value.rewardAnimations.map((reward) => (reward.id === currentId ? { ...reward, stage: 'flying' } : reward))
             }
+            onFlyingStart?.()
 
             await sleep(REWARD_FLY_MS)
             animationMeta.value = {

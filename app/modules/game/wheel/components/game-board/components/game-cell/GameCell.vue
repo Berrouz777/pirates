@@ -1,8 +1,8 @@
 <template>
-    <div :data-cell-index="index" class="relative flex h-full w-full items-center justify-center p-1">
+    <div :data-cell-index="index" :data-bonus-source-index="index" class="relative flex h-full w-full items-center justify-center p-1">
         <CellBackground v-if="showBackground" class="absolute inset-0 h-full w-full" />
 
-        <div class="game-element relative z-10 h-full w-full" :class="elementClass" :style="elementStyle">
+        <div class="game-element relative z-10 h-full w-full" :class="elementClass" :style="elementStyle" :data-bonus-element="isBonusElement ? '' : undefined">
             <GameElement v-if="element" :type="element" />
         </div>
 
@@ -35,13 +35,17 @@
     const isClearing = computed(() => props.animationMeta.removingIndices.includes(props.index))
     const isFilling = computed(() => props.animationMeta.spawnIndices.includes(props.index))
     const fallOffset = computed(() => props.animationMeta.fallOffsetsByIndex[props.index] ?? 0)
+    const isBonusElement = computed(() => props.element === 'bonus-game')
+    const isHiddenBonusOriginal = computed(() => props.animationMeta.hiddenBonusIndices.includes(props.index))
 
     const elementClass = computed(() => ({
         'is-spinning-out': props.phase === 'spinningOut' && !!props.element,
         'is-spawning': props.phase === 'spawning' && !!props.element,
-        'is-clearing': props.phase === 'clearing' && isClearing.value && !!props.element,
+        'is-clearing': props.phase === 'clearing' && isClearing.value && !!props.element && !isBonusElement.value,
+        'is-clearing-bonus': props.phase === 'clearing' && isClearing.value && !!props.element && isBonusElement.value,
         'is-falling': props.phase === 'falling' && fallOffset.value > 0 && !!props.element,
-        'is-filling': props.phase === 'filling' && isFilling.value && !!props.element
+        'is-filling': props.phase === 'filling' && isFilling.value && !!props.element,
+        'is-hidden-bonus-original': isHiddenBonusOriginal.value && isBonusElement.value
     }))
 
     const elementStyle = computed(() => {
@@ -92,6 +96,16 @@
 
     .game-element.is-clearing {
         animation: pop-clear var(--clear-duration, 400ms) ease-in both;
+    }
+
+    .game-element.is-clearing-bonus {
+        transform-origin: center center;
+        opacity: 1;
+        animation: bonus-clear-spin var(--clear-duration, 400ms) ease-out both;
+    }
+
+    .game-element.is-hidden-bonus-original {
+        opacity: 0;
     }
 
     .game-element.is-falling {
@@ -146,6 +160,24 @@
         100% {
             transform: scale(0.8);
             opacity: 0;
+        }
+    }
+
+    @keyframes bonus-clear-spin {
+        0% {
+            transform: scale(1) rotate(0deg);
+        }
+        25% {
+            transform: scale(1.25) rotate(90deg);
+        }
+        50% {
+            transform: scale(1.5) rotate(180deg);
+        }
+        75% {
+            transform: scale(1.25) rotate(270deg);
+        }
+        100% {
+            transform: scale(1) rotate(360deg);
         }
     }
 

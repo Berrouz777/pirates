@@ -1,6 +1,6 @@
 <template>
     <div
-        class="page-root relative flex h-screen w-full touch-none items-center justify-center overflow-hidden [padding-bottom:env(safe-area-inset-bottom)] [padding-left:env(safe-area-inset-left)] [padding-right:env(safe-area-inset-right)] [padding-top:env(safe-area-inset-top)] supports-[height:100svh]:h-svh"
+        class="relative flex h-screen w-full touch-none items-center justify-center overflow-hidden [padding-bottom:env(safe-area-inset-bottom)] [padding-left:env(safe-area-inset-left)] [padding-right:env(safe-area-inset-right)] [padding-top:env(safe-area-inset-top)] supports-[height:100svh]:h-svh"
     >
         <div ref="gameStretchShellRef" class="game-stretch-shell">
             <div ref="gameContainerRef" :style="gameContainerStyle" class="game-container flex flex-col items-center justify-center bg-[#57d5e8]">
@@ -86,7 +86,7 @@
 
     @media (max-width: 599px) {
         .game-container {
-            width: min(100vw, calc(100svh / 2));
+            width: min(100vw, calc(100svh / 2.04));
         }
 
         .game-stretch-shell {

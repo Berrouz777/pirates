@@ -21,7 +21,15 @@ export const useWheelStore = defineStore('wheel', () => {
     const pendingBonusEffect = ref<ActiveBonusEffect | null>(null)
     const pendingCashWin = ref<number>(0)
     const phase = ref<GamePhase>('idle')
-    const animationMeta = ref<AnimationMeta>({ removingIndices: [], spawnIndices: [], fallOffsetsByIndex: {}, rewardAnimations: [] })
+    const animationMeta = ref<AnimationMeta>({
+        removingIndices: [],
+        spawnIndices: [],
+        fallOffsetsByIndex: {},
+        rewardAnimations: [],
+        bonusHoverIndices: [],
+        hiddenBonusIndices: [],
+        bonusFlightAnimations: []
+    })
 
     const setBet = (value: number) => {
         bet.value = value
@@ -44,7 +52,15 @@ export const useWheelStore = defineStore('wheel', () => {
         pendingBonusEffect.value = null
         pendingCashWin.value = 0
         phase.value = 'idle'
-        animationMeta.value = { removingIndices: [], spawnIndices: [], fallOffsetsByIndex: {}, rewardAnimations: [] }
+        animationMeta.value = {
+            removingIndices: [],
+            spawnIndices: [],
+            fallOffsetsByIndex: {},
+            rewardAnimations: [],
+            bonusHoverIndices: [],
+            hiddenBonusIndices: [],
+            bonusFlightAnimations: []
+        }
     }
 
     return {
