@@ -11,6 +11,7 @@ export const useWheelStore = defineStore('wheel', () => {
     const isAutoSpinning = ref<boolean>(false)
     const lastWinAmount = ref<number>(0)
     const balance = ref<number>(START_BALANCE)
+    const pendingBalance = ref<number | null>(null)
     const bet = ref<number>(DEFAULT_BET)
     const bonusProgress = ref<number>(0)
     const bonusIntroTrigger = ref<number>(0)
@@ -42,6 +43,7 @@ export const useWheelStore = defineStore('wheel', () => {
         isAutoSpinning.value = false
         lastWinAmount.value = 0
         balance.value = START_BALANCE
+        pendingBalance.value = null
         bet.value = DEFAULT_BET
         bonusProgress.value = 0
         bonusIntroTrigger.value = 0
@@ -70,6 +72,7 @@ export const useWheelStore = defineStore('wheel', () => {
         isAutoSpinning,
         lastWinAmount,
         balance,
+        pendingBalance,
         bet,
         bonusProgress,
         bonusIntroTrigger,

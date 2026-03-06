@@ -110,15 +110,15 @@ export const usePiratesMockState = () => {
         })
         state.spinCounter += 1
 
-        let totalWin = 0
+        let totalExplodeWin = 0
 
         const drops: SpinDrop[] = currentTemplate.drops.map((dropTemplate) => {
             let dropWin = 0
 
             const explodingGroups = dropTemplate.explodingGroups.map((group) => {
-                const rewardAmount = roundMoney(getMultiplierByGroupSize(group.count) * activeMultiple)
+                const rewardAmount = roundMoney(safeBet * getMultiplierByGroupSize(group.count) * activeMultiple)
                 dropWin = roundMoney(dropWin + rewardAmount)
-                totalWin = roundMoney(totalWin + rewardAmount)
+                totalExplodeWin = roundMoney(totalExplodeWin + rewardAmount)
                 return { ...group, rewardAmount }
             })
 
@@ -147,6 +147,10 @@ export const usePiratesMockState = () => {
                       cashAmount: roundMoney((currentTemplate.bonusRouletteResult.cashMultiplier ?? 0) * averageBetToBonus)
                   }
                 : currentTemplate.bonusRouletteResult
+
+        const cashWin = resolvedBonusRouletteResult?.prizeType === 'cash' ? (resolvedBonusRouletteResult.cashAmount ?? 0) : 0
+        const totalWin = roundMoney(totalExplodeWin + cashWin)
+        state.balance = roundMoney(state.balance + totalWin)
 
         const nextBonusEffect = createActiveBonusByRoulette(resolvedBonusRouletteResult)
         if (currentTemplate.bonusTriggered) {
