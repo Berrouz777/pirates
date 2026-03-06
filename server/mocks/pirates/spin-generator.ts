@@ -32,13 +32,14 @@ export interface RandomSpinGeneratorInput {
 
 const BONUS_PROGRESS_MAX = 100
 const MIN_GROUP_SIZE = 10
-const MAX_ANCHOR_GROUP_SIZE = 16
 const MAX_ACTION_DROPS = 3
 const MAX_BONUS_PER_ACTION = 8
 const MAX_BUILD_ATTEMPTS = 30
 
 const REGULAR_ELEMENTS: NonBonusElementType[] = ['wheel', 'bomb', 'sword', 'shield', 'musketoon', 'keg', 'tankard', 'cannon']
 const ALL_ELEMENTS: ElementType[] = [...REGULAR_ELEMENTS, 'bonus-game']
+
+const BONUS_PROBABILITY_PER_CELL = 1 / 32
 
 const createEmptyCounts = (): ElementCounts => ({
     'wheel': 0,
@@ -146,23 +147,6 @@ const resolveActionDropCount = (targetBonusGain: number): number => {
     return randomInt(minDrops, maxDrops)
 }
 
-const splitBonusGainPlan = (targetBonusGain: number, parts: number): number[] => {
-    const safeParts = Math.max(1, Math.min(parts, targetBonusGain))
-    const chunks = Array.from({ length: safeParts }, () => 1)
-    let remaining = targetBonusGain - safeParts
-
-    while (remaining > 0) {
-        const chunkIndex = randomInt(0, safeParts - 1)
-        if ((chunks[chunkIndex] ?? 0) >= MAX_BONUS_PER_ACTION) {
-            continue
-        }
-        chunks[chunkIndex] = (chunks[chunkIndex] ?? 0) + 1
-        remaining -= 1
-    }
-
-    return shuffleCopy(chunks)
-}
-
 const distributeRegularElements = (counts: ElementCounts, amount: number) => {
     let remaining = amount
 
@@ -173,31 +157,36 @@ const distributeRegularElements = (counts: ElementCounts, amount: number) => {
     }
 }
 
-const createInitialDropCounts = (bonusCount: number): ElementCounts => {
-    const cappedBonus = Math.max(0, Math.min(bonusCount, BOARD_SIZE))
+const createInitialDropCounts = (): ElementCounts => {
     const counts = createEmptyCounts()
-    counts['bonus-game'] = cappedBonus
 
-    const regularSlots = BOARD_SIZE - cappedBonus
-    const anchorType = pickRandom(REGULAR_ELEMENTS)
-    const anchorCount = randomInt(MIN_GROUP_SIZE, Math.min(MAX_ANCHOR_GROUP_SIZE, regularSlots))
-
-    counts[anchorType] += anchorCount
-    distributeRegularElements(counts, regularSlots - anchorCount)
+    for (let index = 0; index < BOARD_SIZE; index += 1) {
+        if (randomBool(BONUS_PROBABILITY_PER_CELL)) {
+            counts['bonus-game'] += 1
+        } else {
+            const type = pickRandom(REGULAR_ELEMENTS)
+            counts[type] += 1
+        }
+    }
 
     return counts
 }
 
-const createRandomFillCounts = (fillSize: number, bonusCount: number): ElementCounts => {
+const createRandomFillCounts = (fillSize: number): ElementCounts => {
     const counts = createEmptyCounts()
 
     if (fillSize <= 0) {
         return counts
     }
 
-    const cappedBonus = Math.max(0, Math.min(bonusCount, fillSize))
-    counts['bonus-game'] = cappedBonus
-    distributeRegularElements(counts, fillSize - cappedBonus)
+    for (let index = 0; index < fillSize; index += 1) {
+        if (randomBool(BONUS_PROBABILITY_PER_CELL)) {
+            counts['bonus-game'] += 1
+        } else {
+            const type = pickRandom(REGULAR_ELEMENTS)
+            counts[type] += 1
+        }
+    }
 
     return counts
 }
@@ -241,20 +230,20 @@ const forceExplodingCandidate = (survivors: ElementCounts, fillCounts: ElementCo
     return adjusted
 }
 
-const createFillDropCounts = (fillSize: number, bonusCount: number, survivors: ElementCounts, ensureCandidate: boolean): ElementCounts => {
+const createFillDropCounts = (fillSize: number, survivors: ElementCounts, ensureCandidate: boolean): ElementCounts => {
     if (!ensureCandidate) {
-        return createRandomFillCounts(fillSize, bonusCount)
+        return createRandomFillCounts(fillSize)
     }
 
     for (let attempt = 0; attempt < MAX_BUILD_ATTEMPTS; attempt += 1) {
-        const candidate = createRandomFillCounts(fillSize, bonusCount)
+        const candidate = createRandomFillCounts(fillSize)
         const boardAfterFill = addCounts(survivors, candidate)
         if (hasExplodingCandidate(boardAfterFill)) {
             return candidate
         }
     }
 
-    const fallback = createRandomFillCounts(fillSize, bonusCount)
+    const fallback = createRandomFillCounts(fillSize)
     return forceExplodingCandidate(survivors, fallback)
 }
 
@@ -470,12 +459,11 @@ const validateGeneratedTemplate = (template: GeneratedSpinTemplate, startProgres
 const buildRandomTemplate = (spinNumber: number, startProgress: number): GeneratedSpinTemplate => {
     const targetBonusGain = getTargetBonusGain(startProgress)
     const actionDropCount = resolveActionDropCount(targetBonusGain)
-    const bonusGainPlan = splitBonusGainPlan(targetBonusGain, actionDropCount)
 
     const drops: GeneratedDropTemplate[] = []
     let progress = startProgress
 
-    let currentDropCounts = createInitialDropCounts(bonusGainPlan[0] ?? 1)
+    let currentDropCounts = createInitialDropCounts()
     let survivors = createEmptyCounts()
     let removedFromLastDrop = 0
 
@@ -496,10 +484,12 @@ const buildRandomTemplate = (spinNumber: number, startProgress: number): Generat
         survivors = resolved.survivors
         removedFromLastDrop = resolved.removedTotal
 
+        if (removedFromLastDrop <= 0) {
+            break
+        }
+
         if (actionIndex < actionDropCount - 1) {
-            const plannedNextBonus = bonusGainPlan[actionIndex + 1] ?? 1
-            const nextBonus = Math.min(plannedNextBonus, resolved.removedTotal)
-            currentDropCounts = createFillDropCounts(resolved.removedTotal, nextBonus, survivors, true)
+            currentDropCounts = createFillDropCounts(resolved.removedTotal, survivors, true)
         }
     }
 
