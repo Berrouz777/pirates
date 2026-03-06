@@ -17,6 +17,7 @@ export const useWheelFlow = () => {
         isAutoSpinning,
         lastWinAmount,
         balance,
+        pendingBalance,
         bet,
         bonusProgress,
         bonusIntroTrigger,
@@ -49,6 +50,11 @@ export const useWheelFlow = () => {
     const prepareBonusRouletteResult = () => bonusRouletteResult.value
 
     const applyBonusRouletteResult = () => {
+        if (pendingBalance.value !== null) {
+            balance.value = pendingBalance.value
+            pendingBalance.value = null
+        }
+
         activeBonusEffect.value = pendingBonusEffect.value
         pendingBonusEffect.value = null
 
@@ -71,6 +77,7 @@ export const useWheelFlow = () => {
             board.value = [...initResponse.board]
             lastWinAmount.value = 0
             balance.value = initResponse.balance ?? START_BALANCE
+            pendingBalance.value = null
             bet.value = initResponse.bet ?? DEFAULT_BET
             bonusProgress.value = initResponse.bonusProgress
             bonusIntroTrigger.value = 0
@@ -102,9 +109,13 @@ export const useWheelFlow = () => {
         isSpinning.value = true
 
         try {
+            if (!hasFreeSpinAvailable()) {
+                balance.value = roundMoney(balance.value - currentBet)
+            }
+
             const scenario = await api.spin({ bet: currentBet })
 
-            balance.value = scenario.balance
+            pendingBalance.value = scenario.balance
 
             await applyScenarioAnimations(scenario)
 
@@ -123,6 +134,10 @@ export const useWheelFlow = () => {
                 activeBonusEffect.value = scenario.activeBonusEffect
                 pendingCashWin.value = 0
                 lastWinAmount.value = scenario.win
+                if (pendingBalance.value !== null) {
+                    balance.value = pendingBalance.value
+                    pendingBalance.value = null
+                }
             }
         } finally {
             resetAnimationMeta()
