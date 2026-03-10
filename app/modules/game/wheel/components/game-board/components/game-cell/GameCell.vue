@@ -169,12 +169,14 @@
         }
         25% {
             transform: scale(1.25) rotate(90deg);
+            opacity: 0;
         }
         50% {
             transform: scale(1.5) rotate(180deg);
         }
         75% {
             transform: scale(1.25) rotate(270deg);
+            opacity: 1;
         }
         100% {
             transform: scale(1) rotate(360deg);

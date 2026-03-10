@@ -3,6 +3,7 @@ export type RewardAnimationStage = 'appearing' | 'fading' | 'flying'
 export interface RewardAnimationMeta {
     id: number
     stage: RewardAnimationStage
+    amount: number
 }
 
 export interface BonusFlightAnimationMeta {

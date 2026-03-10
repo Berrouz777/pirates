@@ -74,8 +74,8 @@ export const useSpinScenario = ({ board, phase, animationMeta, lastWinAmount, on
         await sleep(getSpawnTotalDuration(animationMeta.value.spawnIndices))
     }
 
-    const explodeGroup = async (groupType: SpinDrop['explodingGroups'][number]['type'], groupCount: number, includeBonusIndices: boolean) => {
-        const removingIndices = findGroupIndices(board.value, groupType, groupCount)
+    const explodeGroup = async (group: SpinDrop['explodingGroups'][number], includeBonusIndices: boolean) => {
+        const removingIndices = findGroupIndices(board.value, group.type, group.count)
         const bonusIndices = includeBonusIndices ? findBonusGameIndices(board.value) : []
         const allRemoving = Array.from(new Set([...removingIndices, ...bonusIndices]))
 
@@ -94,8 +94,9 @@ export const useSpinScenario = ({ board, phase, animationMeta, lastWinAmount, on
         const lastBonusStartOffset = hasBonuses ? (bonusIndices.length - 1) * BONUS_FLIGHT_STEP_MS : 0
         const totalBonusFlightTime = hasBonuses ? BONUS_FLIGHT_DURATION_MS + lastBonusStartOffset : 0
 
-        if (groupType !== 'bonus-scatter') {
+        if (group.type !== 'bonus-scatter') {
             triggerRewardAnimation({
+                amount: group.rewardAmount,
                 onFlyingStart: () => {
                     triggerBonusFlights(bonusIndices)
                 }
@@ -195,7 +196,7 @@ export const useSpinScenario = ({ board, phase, animationMeta, lastWinAmount, on
 
         for (const [groupIndex, group] of drop.explodingGroups.entries()) {
             const isFirstGroup = groupIndex === 0
-            const allRemoving = await explodeGroup(group.type, group.count, isFirstGroup)
+            const allRemoving = await explodeGroup(group, isFirstGroup)
             allRemovingForDrop = Array.from(new Set([...allRemovingForDrop, ...allRemoving]))
 
             lastWinAmount.value = Math.round((lastWinAmount.value + group.rewardAmount) * 100) / 100

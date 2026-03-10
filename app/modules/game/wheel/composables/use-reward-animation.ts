@@ -9,18 +9,19 @@ interface UseRewardAnimationParams {
 }
 
 interface TriggerRewardAnimationOptions {
+    amount: number
     onFlyingStart?: () => void
 }
 
 export const useRewardAnimation = ({ animationMeta, sleep }: UseRewardAnimationParams) => {
     let rewardId = 0
 
-    const triggerRewardAnimation = ({ onFlyingStart }: TriggerRewardAnimationOptions = {}) => {
+    const triggerRewardAnimation = ({ amount, onFlyingStart }: TriggerRewardAnimationOptions) => {
         const currentId = rewardId++
 
         animationMeta.value = {
             ...animationMeta.value,
-            rewardAnimations: [...animationMeta.value.rewardAnimations, { id: currentId, stage: 'appearing' }]
+            rewardAnimations: [...animationMeta.value.rewardAnimations, { id: currentId, stage: 'appearing', amount }]
         }
 
         void (async () => {

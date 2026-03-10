@@ -12,6 +12,7 @@ interface UseRewardPositioningParams {
 export interface PositionedReward {
     id: number
     stage: RewardAnimationStage
+    amount: number
     style: CSSProperties
 }
 
@@ -75,6 +76,7 @@ export const useRewardPositioning = ({ rewards, boardElement }: UseRewardPositio
         return rewardsList.map((reward) => ({
             id: reward.id,
             stage: reward.stage,
+            amount: reward.amount,
             style: {
                 'left': `${sourceX}px`,
                 'top': `${sourceY}px`,
