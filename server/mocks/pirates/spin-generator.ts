@@ -1,7 +1,7 @@
 import type { BonusRouletteResult, ElementType } from '../../../app/modules/game/wheel'
 import { BOARD_SIZE, BONUS_ROULETTE_CELLS, CASH_MULTIPLIER_BY_KEY, MULTIPLE_VALUE_BY_KEY } from '../../../app/modules/game/wheel/constants'
 
-type NonBonusElementType = Exclude<ElementType, 'bonus-game'>
+type NonBonusElementType = Exclude<ElementType, 'bonus-game' | 'bonus-scatter'>
 type ElementCounts = Record<ElementType, number>
 type MultipleCellKey = keyof typeof MULTIPLE_VALUE_BY_KEY
 type CashCellKey = keyof typeof CASH_MULTIPLIER_BY_KEY
@@ -23,23 +23,27 @@ export interface GeneratedSpinTemplate {
     drops: GeneratedDropTemplate[]
     bonusTriggered: boolean
     bonusRouletteResult: BonusRouletteResult | null
+    maxScatterOnBoardInSpin: number
 }
 
 export interface RandomSpinGeneratorInput {
     bonusProgress: number
     spinNumber: number
+    allowScatter: boolean
 }
 
 const BONUS_PROGRESS_MAX = 100
 const MIN_GROUP_SIZE = 10
+const MIN_SCATTER_GROUP_SIZE = 10
 const MAX_ACTION_DROPS = 3
 const MAX_BONUS_PER_ACTION = 8
 const MAX_BUILD_ATTEMPTS = 30
 
 const REGULAR_ELEMENTS: NonBonusElementType[] = ['wheel', 'bomb', 'sword', 'shield', 'musketoon', 'keg', 'tankard', 'cannon']
-const ALL_ELEMENTS: ElementType[] = [...REGULAR_ELEMENTS, 'bonus-game']
+const ALL_ELEMENTS: ElementType[] = [...REGULAR_ELEMENTS, 'bonus-game', 'bonus-scatter']
 
 const BONUS_PROBABILITY_PER_CELL = 1 / 32
+const SCATTER_PROBABILITY_PER_CELL = 1 / 32
 
 const createEmptyCounts = (): ElementCounts => ({
     'wheel': 0,
@@ -50,7 +54,8 @@ const createEmptyCounts = (): ElementCounts => ({
     'keg': 0,
     'tankard': 0,
     'cannon': 0,
-    'bonus-game': 0
+    'bonus-game': 0,
+    'bonus-scatter': 0
 })
 
 const cloneCounts = (counts: ElementCounts): ElementCounts => ({ ...counts })
@@ -157,12 +162,16 @@ const distributeRegularElements = (counts: ElementCounts, amount: number) => {
     }
 }
 
-const createInitialDropCounts = (): ElementCounts => {
+const createInitialDropCounts = (allowScatter: boolean): ElementCounts => {
     const counts = createEmptyCounts()
+    const totalBonusProbability = BONUS_PROBABILITY_PER_CELL + (allowScatter ? SCATTER_PROBABILITY_PER_CELL : 0)
 
     for (let index = 0; index < BOARD_SIZE; index += 1) {
-        if (randomBool(BONUS_PROBABILITY_PER_CELL)) {
+        const roll = Math.random()
+        if (roll < BONUS_PROBABILITY_PER_CELL) {
             counts['bonus-game'] += 1
+        } else if (allowScatter && roll < totalBonusProbability) {
+            counts['bonus-scatter'] += 1
         } else {
             const type = pickRandom(REGULAR_ELEMENTS)
             counts[type] += 1
@@ -172,16 +181,20 @@ const createInitialDropCounts = (): ElementCounts => {
     return counts
 }
 
-const createRandomFillCounts = (fillSize: number): ElementCounts => {
+const createRandomFillCounts = (fillSize: number, allowScatter: boolean): ElementCounts => {
     const counts = createEmptyCounts()
+    const totalBonusProbability = BONUS_PROBABILITY_PER_CELL + (allowScatter ? SCATTER_PROBABILITY_PER_CELL : 0)
 
     if (fillSize <= 0) {
         return counts
     }
 
     for (let index = 0; index < fillSize; index += 1) {
-        if (randomBool(BONUS_PROBABILITY_PER_CELL)) {
+        const roll = Math.random()
+        if (roll < BONUS_PROBABILITY_PER_CELL) {
             counts['bonus-game'] += 1
+        } else if (allowScatter && roll < totalBonusProbability) {
+            counts['bonus-scatter'] += 1
         } else {
             const type = pickRandom(REGULAR_ELEMENTS)
             counts[type] += 1
@@ -227,23 +240,29 @@ const forceExplodingCandidate = (survivors: ElementCounts, fillCounts: ElementCo
         missing -= 1
     }
 
+    while (missing > 0 && adjusted['bonus-scatter'] > 0) {
+        adjusted['bonus-scatter'] -= 1
+        adjusted[targetType] += 1
+        missing -= 1
+    }
+
     return adjusted
 }
 
-const createFillDropCounts = (fillSize: number, survivors: ElementCounts, ensureCandidate: boolean): ElementCounts => {
+const createFillDropCounts = (fillSize: number, survivors: ElementCounts, ensureCandidate: boolean, allowScatter: boolean): ElementCounts => {
     if (!ensureCandidate) {
-        return createRandomFillCounts(fillSize)
+        return createRandomFillCounts(fillSize, allowScatter)
     }
 
     for (let attempt = 0; attempt < MAX_BUILD_ATTEMPTS; attempt += 1) {
-        const candidate = createRandomFillCounts(fillSize)
+        const candidate = createRandomFillCounts(fillSize, allowScatter)
         const boardAfterFill = addCounts(survivors, candidate)
         if (hasExplodingCandidate(boardAfterFill)) {
             return candidate
         }
     }
 
-    const fallback = createRandomFillCounts(fillSize)
+    const fallback = createRandomFillCounts(fillSize, allowScatter)
     return forceExplodingCandidate(survivors, fallback)
 }
 
@@ -282,23 +301,38 @@ const createTerminalDropCounts = (fillSize: number, survivors: ElementCounts): E
 
 const chooseExplodingGroups = (boardCounts: ElementCounts, forceAtLeastOne: boolean): Array<{ type: ElementType; count: number }> => {
     const candidates = shuffleCopy(REGULAR_ELEMENTS.filter((type) => boardCounts[type] >= MIN_GROUP_SIZE))
-    if (candidates.length === 0) {
+    const scatterCount = boardCounts['bonus-scatter']
+    const canExplodeScatter = scatterCount >= MIN_SCATTER_GROUP_SIZE
+
+    if (candidates.length === 0 && !canExplodeScatter) {
         return []
     }
 
-    if (!forceAtLeastOne && boardCounts['bonus-game'] > 0 && randomBool(0.2)) {
+    if (!forceAtLeastOne && boardCounts['bonus-game'] > 0 && randomBool(0.2) && !canExplodeScatter) {
         return []
     }
 
-    const groupCount = candidates.length > 1 && randomBool(0.35) ? 2 : 1
+    const regularGroups: Array<{ type: ElementType; count: number }> = []
+    if (candidates.length > 0) {
+        const groupCount = candidates.length > 1 && randomBool(0.35) ? 2 : 1
 
-    return candidates.slice(0, groupCount).map((type) => {
-        return {
-            type,
-            // Для предсказуемости моков удаляем весь доступный объём выбранного символа.
-            count: boardCounts[type]
-        }
-    })
+        regularGroups.push(
+            ...candidates.slice(0, groupCount).map((type) => {
+                return {
+                    type,
+                    // Для предсказуемости моков удаляем весь доступный объём выбранного символа.
+                    count: boardCounts[type]
+                }
+            })
+        )
+    }
+
+    if (!canExplodeScatter) {
+        return regularGroups
+    }
+
+    // Scatter-группа всегда последняя в очереди взрывов.
+    return [...regularGroups, { type: 'bonus-scatter', count: scatterCount }]
 }
 
 const resolveDrop = (boardCounts: ElementCounts, explodingGroups: Array<{ type: ElementType; count: number }>): DropResolution => {
@@ -332,6 +366,7 @@ const createRandomBonusRouletteResult = (): BonusRouletteResult => {
         return {
             cellKey,
             prizeType: 'empty',
+            triggerSource: 'progress',
             freeSpinsCount: null,
             multipleValue: null,
             cashMultiplier: null,
@@ -339,11 +374,12 @@ const createRandomBonusRouletteResult = (): BonusRouletteResult => {
         }
     }
 
-    if (cellKey === 'freespin-5') {
+    if (cellKey === 'freespin-5' || cellKey === 'freespin-10') {
         return {
             cellKey,
             prizeType: 'freespins',
-            freeSpinsCount: 5,
+            triggerSource: 'progress',
+            freeSpinsCount: cellKey === 'freespin-5' ? 5 : 10,
             multipleValue: null,
             cashMultiplier: null,
             cashAmount: null
@@ -354,6 +390,7 @@ const createRandomBonusRouletteResult = (): BonusRouletteResult => {
         return {
             cellKey,
             prizeType: 'multiple',
+            triggerSource: 'progress',
             freeSpinsCount: null,
             multipleValue: MULTIPLE_VALUE_BY_KEY[cellKey],
             cashMultiplier: null,
@@ -364,6 +401,7 @@ const createRandomBonusRouletteResult = (): BonusRouletteResult => {
     return {
         cellKey,
         prizeType: 'cash',
+        triggerSource: 'progress',
         freeSpinsCount: null,
         multipleValue: null,
         cashMultiplier: isCashCellKey(cellKey) ? CASH_MULTIPLIER_BY_KEY[cellKey] : null,
@@ -372,6 +410,10 @@ const createRandomBonusRouletteResult = (): BonusRouletteResult => {
 }
 
 const isRouletteResultValid = (result: BonusRouletteResult): boolean => {
+    if (result.triggerSource !== 'progress' && result.triggerSource !== 'scatter') {
+        return false
+    }
+
     if (!BONUS_ROULETTE_CELLS.includes(result.cellKey)) {
         return false
     }
@@ -381,7 +423,7 @@ const isRouletteResultValid = (result: BonusRouletteResult): boolean => {
     }
 
     if (result.prizeType === 'freespins') {
-        return result.cellKey === 'freespin-5' && result.freeSpinsCount === 5
+        return (result.cellKey === 'freespin-5' && result.freeSpinsCount === 5) || (result.cellKey === 'freespin-10' && result.freeSpinsCount === 10)
     }
 
     if (result.prizeType === 'multiple') {
@@ -409,10 +451,16 @@ const validateGeneratedTemplate = (template: GeneratedSpinTemplate, startProgres
         const boardBeforeDrop = dropIndex === 0 ? dropCounts : addCounts(survivors, dropCounts)
 
         for (const group of drop.explodingGroups) {
-            if (!REGULAR_ELEMENTS.includes(group.type as NonBonusElementType)) {
+            const isRegularGroup = REGULAR_ELEMENTS.includes(group.type as NonBonusElementType)
+            const isScatterGroup = group.type === 'bonus-scatter'
+
+            if (!isRegularGroup && !isScatterGroup) {
                 return false
             }
-            if (group.count < MIN_GROUP_SIZE) {
+            if (isRegularGroup && group.count < MIN_GROUP_SIZE) {
+                return false
+            }
+            if (isScatterGroup && group.count < MIN_SCATTER_GROUP_SIZE) {
                 return false
             }
             if ((boardBeforeDrop[group.type] ?? 0) < group.count) {
@@ -456,19 +504,21 @@ const validateGeneratedTemplate = (template: GeneratedSpinTemplate, startProgres
     return template.bonusRouletteResult ? isRouletteResultValid(template.bonusRouletteResult) : true
 }
 
-const buildRandomTemplate = (spinNumber: number, startProgress: number): GeneratedSpinTemplate => {
+const buildRandomTemplate = (spinNumber: number, startProgress: number, allowScatter: boolean): GeneratedSpinTemplate => {
     const targetBonusGain = getTargetBonusGain(startProgress)
     const actionDropCount = resolveActionDropCount(targetBonusGain)
 
     const drops: GeneratedDropTemplate[] = []
     let progress = startProgress
+    let maxScatterOnBoardInSpin = 0
 
-    let currentDropCounts = createInitialDropCounts()
+    let currentDropCounts = createInitialDropCounts(allowScatter)
     let survivors = createEmptyCounts()
     let removedFromLastDrop = 0
 
     for (let actionIndex = 0; actionIndex < actionDropCount; actionIndex += 1) {
         const boardBeforeDrop = actionIndex === 0 ? currentDropCounts : addCounts(survivors, currentDropCounts)
+        maxScatterOnBoardInSpin = Math.max(maxScatterOnBoardInSpin, boardBeforeDrop['bonus-scatter'])
         const forceAtLeastOneGroup = actionIndex < actionDropCount - 1
         const explodingGroups = chooseExplodingGroups(boardBeforeDrop, forceAtLeastOneGroup)
         const resolved = resolveDrop(boardBeforeDrop, explodingGroups)
@@ -489,12 +539,14 @@ const buildRandomTemplate = (spinNumber: number, startProgress: number): Generat
         }
 
         if (actionIndex < actionDropCount - 1) {
-            currentDropCounts = createFillDropCounts(resolved.removedTotal, survivors, true)
+            currentDropCounts = createFillDropCounts(resolved.removedTotal, survivors, true, allowScatter)
         }
     }
 
     if (removedFromLastDrop > 0) {
         const terminalCounts = createTerminalDropCounts(removedFromLastDrop, survivors)
+        const boardBeforeTerminalDrop = addCounts(survivors, terminalCounts)
+        maxScatterOnBoardInSpin = Math.max(maxScatterOnBoardInSpin, boardBeforeTerminalDrop['bonus-scatter'])
         drops.push({
             counts: toSerializableCounts(terminalCounts),
             explodingGroups: [],
@@ -508,15 +560,16 @@ const buildRandomTemplate = (spinNumber: number, startProgress: number): Generat
         id: `spin-random-${spinNumber + 1}-${Date.now()}-${randomInt(1000, 9999)}`,
         drops,
         bonusTriggered,
-        bonusRouletteResult: bonusTriggered ? createRandomBonusRouletteResult() : null
+        bonusRouletteResult: bonusTriggered ? createRandomBonusRouletteResult() : null,
+        maxScatterOnBoardInSpin
     }
 }
 
-export const generateRandomSpinTemplate = ({ bonusProgress, spinNumber }: RandomSpinGeneratorInput): GeneratedSpinTemplate => {
+export const generateRandomSpinTemplate = ({ bonusProgress, spinNumber, allowScatter }: RandomSpinGeneratorInput): GeneratedSpinTemplate => {
     const startProgress = normalizeBonusProgress(bonusProgress)
 
     for (let attempt = 0; attempt < MAX_BUILD_ATTEMPTS; attempt += 1) {
-        const template = buildRandomTemplate(spinNumber, startProgress)
+        const template = buildRandomTemplate(spinNumber, startProgress, allowScatter)
         if (validateGeneratedTemplate(template, startProgress)) {
             return template
         }

@@ -8,6 +8,7 @@
     import type { ElementType } from '../../../../../../types'
 
     import BonusGameElement from './components/elements/bonus-game-element/BonusGameElement.vue'
+    import BonusScatterElement from './components/elements/bonus-scatter-element/BonusScatterElement.vue'
     import BombElement from './components/elements/bomb-element/BombElement.vue'
     import CannonElement from './components/elements/cannon-element/CannonElement.vue'
     import KegElement from './components/elements/keg-element/KegElement.vue'
@@ -27,6 +28,7 @@
         const elementsMap: Record<ElementType, unknown> = {
             'wheel': WheelElement,
             'bonus-game': BonusGameElement,
+            'bonus-scatter': BonusScatterElement,
             'bomb': BombElement,
             'sword': SwordElement,
             'shield': ShieldElement,

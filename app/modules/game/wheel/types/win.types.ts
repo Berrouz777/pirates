@@ -1,6 +1,7 @@
 export type BonusRouletteCellKey =
     | 'empty'
     | 'freespin-5'
+    | 'freespin-10'
     | 'multiple-1.5'
     | 'multiple-2'
     | 'multiple-5'
@@ -12,10 +13,12 @@ export type BonusRouletteCellKey =
     | 'cash-1000'
 
 export type BonusRoulettePrizeType = 'empty' | 'freespins' | 'multiple' | 'cash'
+export type BonusTriggerSource = 'progress' | 'scatter'
 
 export interface BonusRouletteResult {
     cellKey: BonusRouletteCellKey
     prizeType: BonusRoulettePrizeType
+    triggerSource: BonusTriggerSource
     freeSpinsCount: number | null
     multipleValue: number | null
     cashMultiplier: number | null

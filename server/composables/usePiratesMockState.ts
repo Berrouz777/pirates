@@ -61,6 +61,66 @@ const createActiveBonusByRoulette = (result: BonusRouletteResult | null): Active
     }
 }
 
+const createBonusRouletteResultByScatter = (scatterCount: number, bet: number): BonusRouletteResult | null => {
+    if (scatterCount < 10) {
+        return null
+    }
+
+    const cappedScatterCount = Math.min(17, Math.floor(scatterCount))
+
+    if (cappedScatterCount === 10) {
+        return {
+            cellKey: 'freespin-5',
+            prizeType: 'freespins',
+            triggerSource: 'scatter',
+            freeSpinsCount: 5,
+            multipleValue: null,
+            cashMultiplier: null,
+            cashAmount: null
+        }
+    }
+
+    if (cappedScatterCount === 11) {
+        return {
+            cellKey: 'freespin-10',
+            prizeType: 'freespins',
+            triggerSource: 'scatter',
+            freeSpinsCount: 10,
+            multipleValue: null,
+            cashMultiplier: null,
+            cashAmount: null
+        }
+    }
+
+    if (cappedScatterCount === 12 || cappedScatterCount === 13 || cappedScatterCount === 14) {
+        const multipleValue = cappedScatterCount === 12 ? 1.5 : cappedScatterCount === 13 ? 2 : 5
+        const cellKey = cappedScatterCount === 12 ? 'multiple-1.5' : cappedScatterCount === 13 ? 'multiple-2' : 'multiple-5'
+
+        return {
+            cellKey,
+            prizeType: 'multiple',
+            triggerSource: 'scatter',
+            freeSpinsCount: null,
+            multipleValue,
+            cashMultiplier: null,
+            cashAmount: null
+        }
+    }
+
+    const cashMultiplier = cappedScatterCount === 15 ? 10 : cappedScatterCount === 16 ? 25 : 50
+    const cellKey = cappedScatterCount === 15 ? 'cash-10' : cappedScatterCount === 16 ? 'cash-25' : 'cash-50'
+
+    return {
+        cellKey,
+        prizeType: 'cash',
+        triggerSource: 'scatter',
+        freeSpinsCount: null,
+        multipleValue: null,
+        cashMultiplier,
+        cashAmount: roundMoney(cashMultiplier * bet)
+    }
+}
+
 const consumeActiveBonusSpin = () => {
     if (!state.activeBonusEffect || state.activeBonusEffect.remainingSpins <= 0) {
         return
@@ -106,9 +166,13 @@ export const usePiratesMockState = () => {
 
         const currentTemplate = generateRandomSpinTemplate({
             bonusProgress: state.bonusProgress,
-            spinNumber: state.spinCounter
+            spinNumber: state.spinCounter,
+            allowScatter: true
         })
         state.spinCounter += 1
+
+        const scatterBonusRouletteCandidate = createBonusRouletteResultByScatter(currentTemplate.maxScatterOnBoardInSpin, safeBet)
+        const scatterTriggersRoulette = !currentTemplate.bonusTriggered && !!scatterBonusRouletteCandidate
 
         let totalExplodeWin = 0
 
@@ -116,7 +180,7 @@ export const usePiratesMockState = () => {
             let dropWin = 0
 
             const explodingGroups = dropTemplate.explodingGroups.map((group) => {
-                const rewardAmount = roundMoney(safeBet * getMultiplierByGroupSize(group.count) * activeMultiple)
+                const rewardAmount = group.type === 'bonus-scatter' ? 0 : roundMoney(safeBet * getMultiplierByGroupSize(group.count) * activeMultiple)
                 dropWin = roundMoney(dropWin + rewardAmount)
                 totalExplodeWin = roundMoney(totalExplodeWin + rewardAmount)
                 return { ...group, rewardAmount }
@@ -140,14 +204,14 @@ export const usePiratesMockState = () => {
         state.bonusProgress = currentTemplate.bonusTriggered ? 0 : nextProgress
 
         const averageBetToBonus = state.paidSpinsToBonus > 0 ? state.betSumToBonus / state.paidSpinsToBonus : safeBet
+        const baseBonusRouletteResult = currentTemplate.bonusTriggered ? currentTemplate.bonusRouletteResult : scatterBonusRouletteCandidate
         const resolvedBonusRouletteResult =
-            currentTemplate.bonusTriggered && currentTemplate.bonusRouletteResult?.prizeType === 'cash'
+            currentTemplate.bonusTriggered && baseBonusRouletteResult?.prizeType === 'cash'
                 ? {
-                      ...currentTemplate.bonusRouletteResult,
-                      cashAmount: roundMoney((currentTemplate.bonusRouletteResult.cashMultiplier ?? 0) * averageBetToBonus)
+                      ...baseBonusRouletteResult,
+                      cashAmount: roundMoney((baseBonusRouletteResult.cashMultiplier ?? 0) * averageBetToBonus)
                   }
-                : currentTemplate.bonusRouletteResult
-
+                : baseBonusRouletteResult
         const cashWin = resolvedBonusRouletteResult?.prizeType === 'cash' ? (resolvedBonusRouletteResult.cashAmount ?? 0) : 0
         const totalWin = roundMoney(totalExplodeWin + cashWin)
         state.balance = roundMoney(state.balance + totalWin)
@@ -159,6 +223,9 @@ export const usePiratesMockState = () => {
             state.paidSpinsToBonus = 0
         } else {
             consumeActiveBonusSpin()
+            if (scatterTriggersRoulette) {
+                state.activeBonusEffect = nextBonusEffect
+            }
         }
 
         return {
@@ -167,7 +234,7 @@ export const usePiratesMockState = () => {
             win: totalWin,
             balance: state.balance,
             averageBetToBonus: roundMoney(averageBetToBonus),
-            bonusTriggered: currentTemplate.bonusTriggered,
+            bonusTriggered: currentTemplate.bonusTriggered || scatterTriggersRoulette,
             bonusRouletteResult: resolvedBonusRouletteResult,
             activeBonusEffect: state.activeBonusEffect
         }

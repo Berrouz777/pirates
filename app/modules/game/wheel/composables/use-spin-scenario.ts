@@ -90,17 +90,27 @@ export const useSpinScenario = ({ board, phase, animationMeta, lastWinAmount, on
         }
         phase.value = 'clearing'
 
-        triggerRewardAnimation({
-            onFlyingStart: () => {
-                triggerBonusFlights(bonusIndices)
-            }
-        })
-
         const hasBonuses = bonusIndices.length > 0
         const lastBonusStartOffset = hasBonuses ? (bonusIndices.length - 1) * BONUS_FLIGHT_STEP_MS : 0
         const totalBonusFlightTime = hasBonuses ? BONUS_FLIGHT_DURATION_MS + lastBonusStartOffset : 0
-        const clearDelay = hasBonuses ? REWARD_FLY_START_DELAY_MS + totalBonusFlightTime + BONUS_FLIGHT_SNAPSHOT_GUARD_MS : getRewardOverlapMs()
-        await sleep(Math.max(CLEAR_DURATION_MS, clearDelay))
+
+        if (groupType !== 'bonus-scatter') {
+            triggerRewardAnimation({
+                onFlyingStart: () => {
+                    triggerBonusFlights(bonusIndices)
+                }
+            })
+
+            const clearDelay = hasBonuses ? REWARD_FLY_START_DELAY_MS + totalBonusFlightTime + BONUS_FLIGHT_SNAPSHOT_GUARD_MS : getRewardOverlapMs()
+            await sleep(Math.max(CLEAR_DURATION_MS, clearDelay))
+        } else {
+            await sleep(CLEAR_DURATION_MS + BONUS_FLIGHT_SNAPSHOT_GUARD_MS)
+
+            if (hasBonuses) {
+                triggerBonusFlights(bonusIndices)
+                await sleep(totalBonusFlightTime)
+            }
+        }
 
         const removingSet = new Set(allRemoving)
         board.value = board.value.map((cell, i) => (removingSet.has(i) ? null : cell))
@@ -131,7 +141,14 @@ export const useSpinScenario = ({ board, phase, animationMeta, lastWinAmount, on
             bonusFlightAnimations: []
         }
         phase.value = 'clearing'
-        await sleep(CLEAR_DURATION_MS)
+        await sleep(CLEAR_DURATION_MS + BONUS_FLIGHT_SNAPSHOT_GUARD_MS)
+
+        triggerBonusFlights(bonusOnly)
+
+        const hasBonuses = bonusOnly.length > 0
+        const lastBonusStartOffset = hasBonuses ? (bonusOnly.length - 1) * BONUS_FLIGHT_STEP_MS : 0
+        const totalBonusFlightTime = hasBonuses ? BONUS_FLIGHT_DURATION_MS + lastBonusStartOffset : 0
+        await sleep(totalBonusFlightTime)
 
         const bonusSet = new Set(bonusOnly)
         board.value = board.value.map((cell, i) => (bonusSet.has(i) ? null : cell))
