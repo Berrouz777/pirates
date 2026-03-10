@@ -28,7 +28,8 @@ export default <Partial<Config>>{
                 'game-2xl': ['clamp(14px, 8cqw, 48px)', { lineHeight: '1' }],
                 'game-3xl': ['clamp(16px, 8.5cqw, 56px)', { lineHeight: '1' }],
                 'game-4xl': ['clamp(20px, 10.5cqw, 64px)', { lineHeight: '1' }],
-                'game-5xl': ['clamp(28px, 14.5cqw, 80px)', { lineHeight: '1' }]
+                'game-5xl': ['clamp(28px, 14.5cqw, 80px)', { lineHeight: '1' }],
+                'game-6xl': ['clamp(32px, 16.5cqw, 96px)', { lineHeight: '1' }]
             }
             // Custom border colors and other options
             //borderColor: { button: '#BBC8B5' },

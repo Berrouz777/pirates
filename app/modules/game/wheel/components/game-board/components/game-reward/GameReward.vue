@@ -4,7 +4,7 @@
             <div class="reward-amount-wrapper absolute left-0 top-0 z-[2]" :class="{ 'reward-amount-wrapper--flying': reward.stage === 'flying' }">
                 <div class="reward-appear-layer relative">
                     <GameRewardBurst class="reward-burst absolute left-1/2 top-1/2 z-[1]" :class="{ 'reward-burst--fading': reward.stage !== 'appearing' }" />
-                    <GameRewardAmount class="reward-amount relative z-[2] mx-auto block pt-[12%]" />
+                    <GameRewardAmount class="reward-amount relative z-[2] mx-auto block pt-[12%]" :amount="reward.amount" />
                 </div>
             </div>
         </div>
