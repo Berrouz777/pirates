@@ -3,6 +3,7 @@ import type { BonusRouletteCellKey } from '../types'
 export const BONUS_ROULETTE_CELLS: BonusRouletteCellKey[] = [
     'empty',
     'freespin-5',
+    'freespin-10',
     'multiple-1.5',
     'multiple-2',
     'multiple-5',

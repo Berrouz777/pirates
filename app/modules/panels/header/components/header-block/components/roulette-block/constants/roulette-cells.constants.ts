@@ -14,6 +14,7 @@ import freeSpinFiveImage from '~/assets/images/header/bonuses/free-5.png'
 export const ROULETTE_CELLS: RouletteCell[] = [
     { key: 'empty' },
     { key: 'freespin-5', imageSrc: freeSpinFiveImage },
+    { key: 'freespin-10', imageSrc: freeSpinFiveImage },
     { key: 'multiple-1.5', imageSrc: winOneHalfImage },
     { key: 'multiple-2', imageSrc: winTwoImage },
     { key: 'multiple-5', imageSrc: winFiveImage },

@@ -121,7 +121,9 @@ export const useWheelFlow = () => {
 
             if (scenario.bonusTriggered) {
                 await sleep(BONUS_PROGRESS_FULL_PAUSE_MS)
-                bonusProgress.value = 0
+                if (scenario.bonusRouletteResult?.triggerSource === 'progress') {
+                    bonusProgress.value = 0
+                }
                 stopAutoSpin()
                 pendingBonusEffect.value = scenario.activeBonusEffect
                 bonusRouletteResult.value = scenario.bonusRouletteResult

@@ -11,6 +11,7 @@ export interface RouletteRenderCell extends RouletteCell {
 export type RouletteCellKey =
     | 'empty'
     | 'freespin-5'
+    | 'freespin-10'
     | 'multiple-1.5'
     | 'multiple-2'
     | 'multiple-5'
