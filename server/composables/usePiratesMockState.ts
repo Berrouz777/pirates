@@ -164,6 +164,10 @@ export const usePiratesMockState = () => {
         const isFreeSpin = state.activeBonusEffect?.prizeType === 'freespins' && state.activeBonusEffect.remainingSpins > 0
         const activeMultiple = state.activeBonusEffect?.prizeType === 'multiple' ? state.activeBonusEffect.multipleValue : 1
 
+        if (state.activeBonusEffect && state.activeBonusEffect.remainingSpins > 0) {
+            consumeActiveBonusSpin()
+        }
+
         const currentTemplate = generateRandomSpinTemplate({
             bonusProgress: state.bonusProgress,
             spinNumber: state.spinCounter,
@@ -221,11 +225,8 @@ export const usePiratesMockState = () => {
             state.activeBonusEffect = nextBonusEffect
             state.betSumToBonus = 0
             state.paidSpinsToBonus = 0
-        } else {
-            consumeActiveBonusSpin()
-            if (scatterTriggersRoulette) {
-                state.activeBonusEffect = nextBonusEffect
-            }
+        } else if (scatterTriggersRoulette) {
+            state.activeBonusEffect = nextBonusEffect
         }
 
         return {

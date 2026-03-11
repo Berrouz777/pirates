@@ -44,6 +44,23 @@ const ALL_ELEMENTS: ElementType[] = [...REGULAR_ELEMENTS, 'bonus-game', 'bonus-s
 
 const BONUS_PROBABILITY_PER_CELL = 1 / 32
 const SCATTER_PROBABILITY_PER_CELL = 1 / 32
+// Допуск на погрешность суммы весов из-за float-арифметики.
+const PROGRESS_ROULETTE_TOTAL_WEIGHT = 100
+const PROGRESS_ROULETTE_WEIGHT_EPSILON = 1e-6
+
+const PROGRESS_ROULETTE_WEIGHTS: Array<{ cellKey: Exclude<BonusRouletteResult['cellKey'], 'empty'>; weight: number }> = [
+    { cellKey: 'freespin-5', weight: 15.0 },
+    { cellKey: 'freespin-10', weight: 7.5 },
+    { cellKey: 'multiple-1.5', weight: 15.0 },
+    { cellKey: 'multiple-2', weight: 7.5 },
+    { cellKey: 'multiple-5', weight: 5.0 },
+    { cellKey: 'cash-10', weight: 27.9 },
+    { cellKey: 'cash-25', weight: 14.0 },
+    { cellKey: 'cash-50', weight: 5.0 },
+    { cellKey: 'cash-100', weight: 2.5 },
+    { cellKey: 'cash-500', weight: 0.5 },
+    { cellKey: 'cash-1000', weight: 0.1 }
+]
 
 const createEmptyCounts = (): ElementCounts => ({
     'wheel': 0,
@@ -68,6 +85,26 @@ const randomInt = (min: number, max: number): number => {
 const randomBool = (probability: number): boolean => Math.random() < probability
 
 const pickRandom = <T>(items: T[]): T => items[randomInt(0, items.length - 1)]!
+
+const pickProgressRouletteCellKey = (): Exclude<BonusRouletteResult['cellKey'], 'empty'> => {
+    const totalWeight = PROGRESS_ROULETTE_WEIGHTS.reduce((sum, item) => sum + item.weight, 0)
+    if (Math.abs(totalWeight - PROGRESS_ROULETTE_TOTAL_WEIGHT) > PROGRESS_ROULETTE_WEIGHT_EPSILON) {
+        throw new Error(`Invalid progress roulette total weight: ${totalWeight}`)
+    }
+
+    const roll = Math.random() * totalWeight
+    let accumulated = 0
+
+    for (const item of PROGRESS_ROULETTE_WEIGHTS) {
+        accumulated += item.weight
+        if (roll < accumulated) {
+            return item.cellKey
+        }
+    }
+
+    // Fallback на случай погрешности float на правой границе.
+    return PROGRESS_ROULETTE_WEIGHTS[PROGRESS_ROULETTE_WEIGHTS.length - 1]!.cellKey
+}
 
 const shuffleCopy = <T>(items: T[]): T[] => {
     const copy = [...items]
@@ -360,19 +397,7 @@ const resolveDrop = (boardCounts: ElementCounts, explodingGroups: Array<{ type: 
 }
 
 const createRandomBonusRouletteResult = (): BonusRouletteResult => {
-    const cellKey = pickRandom(BONUS_ROULETTE_CELLS)
-
-    if (cellKey === 'empty') {
-        return {
-            cellKey,
-            prizeType: 'empty',
-            triggerSource: 'progress',
-            freeSpinsCount: null,
-            multipleValue: null,
-            cashMultiplier: null,
-            cashAmount: null
-        }
-    }
+    const cellKey = pickProgressRouletteCellKey()
 
     if (cellKey === 'freespin-5' || cellKey === 'freespin-10') {
         return {
