@@ -34,7 +34,8 @@ export interface RandomSpinGeneratorInput {
 
 const BONUS_PROGRESS_MAX = 100
 const MIN_GROUP_SIZE = 10
-const MIN_SCATTER_GROUP_SIZE = 10
+const MIN_SCATTER_GROUP_SIZE = 4
+const MAX_SCATTER_EXPLODE_COUNT = 7
 const MAX_ACTION_DROPS = 3
 const MAX_BONUS_PER_ACTION = 8
 const MAX_BUILD_ATTEMPTS = 30
@@ -43,7 +44,7 @@ const REGULAR_ELEMENTS: NonBonusElementType[] = ['wheel', 'bomb', 'sword', 'shie
 const ALL_ELEMENTS: ElementType[] = [...REGULAR_ELEMENTS, 'bonus-game', 'bonus-scatter']
 
 const BONUS_PROBABILITY_PER_CELL = 1 / 32
-const SCATTER_PROBABILITY_PER_CELL = 1 / 32
+const SCATTER_PROBABILITY_PER_CELL = 0.0925
 // Допуск на погрешность суммы весов из-за float-арифметики.
 const PROGRESS_ROULETTE_TOTAL_WEIGHT = 100
 const PROGRESS_ROULETTE_WEIGHT_EPSILON = 1e-6
@@ -369,7 +370,8 @@ const chooseExplodingGroups = (boardCounts: ElementCounts, forceAtLeastOne: bool
     }
 
     // Scatter-группа всегда последняя в очереди взрывов.
-    return [...regularGroups, { type: 'bonus-scatter', count: scatterCount }]
+    // Если scatter 8+, взрываем только 7, остальные остаются на поле.
+    return [...regularGroups, { type: 'bonus-scatter', count: Math.min(scatterCount, MAX_SCATTER_EXPLODE_COUNT) }]
 }
 
 const resolveDrop = (boardCounts: ElementCounts, explodingGroups: Array<{ type: ElementType; count: number }>): DropResolution => {
