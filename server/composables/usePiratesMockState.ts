@@ -1,26 +1,9 @@
-import type { ActiveBonusEffect, BonusRouletteResult, InitGameResponse, SpinDrop, SpinScenarioResponse } from '../../app/modules/game/wheel'
+import type { ActiveBonusEffect, BonusRouletteResult, ElementType, InitGameResponse, SpinDrop, SpinScenarioResponse } from '../../app/modules/game/wheel'
 
 import initStateJson from '../mocks/pirates/init-state.json'
 import { generateRandomSpinTemplate } from '../mocks/pirates/spin-generator'
-
-interface MockState {
-    balance: number
-    bonusProgress: number
-    activeBonusEffect: ActiveBonusEffect | null
-    spinCounter: number
-    betSumToBonus: number
-    paidSpinsToBonus: number
-}
-
-const GROUP_MULTIPLIER_BY_SIZE: Record<number, number> = {
-    10: 1.25,
-    11: 1.5,
-    12: 2,
-    13: 2.5,
-    14: 3,
-    15: 4,
-    16: 6
-}
+import { ELEMENT_MULTIPLIER_BY_GROUP_SIZE, MAX_GROUP_SIZE_FOR_MULTIPLIER } from './pirates-mock-state.constants'
+import type { MockState } from './pirates-mock-state.types'
 
 const initState = initStateJson as InitGameResponse
 
@@ -35,11 +18,18 @@ const state: MockState = {
 
 const roundMoney = (value: number) => Math.round(value * 100) / 100
 
-const getMultiplierByGroupSize = (groupSize: number): number => {
-    if (groupSize >= 16) {
-        return GROUP_MULTIPLIER_BY_SIZE[16] ?? 0
+const getMultiplierByElementGroupSize = (elementType: ElementType, groupSize: number): number => {
+    if (elementType === 'bonus-game' || elementType === 'bonus-scatter') {
+        return 0
     }
-    return GROUP_MULTIPLIER_BY_SIZE[groupSize] ?? 0
+
+    const normalizedGroupSize = Math.floor(groupSize)
+    if (!Number.isFinite(normalizedGroupSize) || normalizedGroupSize <= 0) {
+        return 0
+    }
+
+    const cappedGroupSize = Math.min(normalizedGroupSize, MAX_GROUP_SIZE_FOR_MULTIPLIER)
+    return ELEMENT_MULTIPLIER_BY_GROUP_SIZE[elementType]?.[cappedGroupSize] ?? 0
 }
 
 const createActiveBonusByRoulette = (result: BonusRouletteResult | null): ActiveBonusEffect | null => {
@@ -183,7 +173,7 @@ export const usePiratesMockState = () => {
             let dropWin = 0
 
             const explodingGroups = dropTemplate.explodingGroups.map((group) => {
-                const rewardAmount = group.type === 'bonus-scatter' ? 0 : roundMoney(safeBet * getMultiplierByGroupSize(group.count) * activeMultiple)
+                const rewardAmount = roundMoney(safeBet * getMultiplierByElementGroupSize(group.type, group.count) * activeMultiple)
                 dropWin = roundMoney(dropWin + rewardAmount)
                 totalExplodeWin = roundMoney(totalExplodeWin + rewardAmount)
                 return { ...group, rewardAmount }

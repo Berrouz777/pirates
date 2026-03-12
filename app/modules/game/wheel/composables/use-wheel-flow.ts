@@ -108,18 +108,6 @@ export const useWheelFlow = () => {
 
         isSpinning.value = true
 
-        if (activeBonusEffect.value && activeBonusEffect.value.remainingSpins > 0) {
-            const nextRemaining = activeBonusEffect.value.remainingSpins - 1
-
-            activeBonusEffect.value =
-                nextRemaining > 0
-                    ? {
-                          ...activeBonusEffect.value,
-                          remainingSpins: nextRemaining
-                      }
-                    : null
-        }
-
         try {
             if (!hasFreeSpinAvailable()) {
                 balance.value = roundMoney(balance.value - currentBet)
