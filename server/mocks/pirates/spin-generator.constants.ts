@@ -3,7 +3,6 @@ import type { NonBonusElementType } from './spin-generator.types'
 
 export const BONUS_PROGRESS_MAX = 100
 export const MIN_SCATTER_GROUP_SIZE = 4
-export const MAX_SCATTER_EXPLODE_COUNT = 7
 export const MAX_ACTION_DROPS = 3
 export const MAX_BONUS_PER_ACTION = 8
 export const MAX_BUILD_ATTEMPTS = 30
