@@ -10,11 +10,12 @@ import winOneHalfImage from '~/assets/images/header/bonuses/x1.5.png'
 import winTwoImage from '~/assets/images/header/bonuses/x2.png'
 import winFiveImage from '~/assets/images/header/bonuses/x5.png'
 import freeSpinFiveImage from '~/assets/images/header/bonuses/free-5.png'
+import freeSpinTenImage from '~/assets/images/header/bonuses/free-10.png'
 
 export const ROULETTE_CELLS: RouletteCell[] = [
     { key: 'empty' },
     { key: 'freespin-5', imageSrc: freeSpinFiveImage },
-    { key: 'freespin-10', imageSrc: freeSpinFiveImage },
+    { key: 'freespin-10', imageSrc: freeSpinTenImage },
     { key: 'multiple-1.5', imageSrc: winOneHalfImage },
     { key: 'multiple-2', imageSrc: winTwoImage },
     { key: 'multiple-5', imageSrc: winFiveImage },
