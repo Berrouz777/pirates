@@ -31,9 +31,21 @@
     defineProps<GameScoreProps>()
 
     const wheelStore = useWheelStore()
-    const { activeBonusEffect } = storeToRefs(wheelStore)
+    const { activeBonusEffect, isSpinning } = storeToRefs(wheelStore)
 
     const isMultipleBonusActive = computed(() => activeBonusEffect.value?.prizeType === 'multiple' && activeBonusEffect.value.remainingSpins > 0)
 
-    const remainingMultipleSpins = computed(() => (activeBonusEffect.value?.prizeType === 'multiple' ? activeBonusEffect.value.remainingSpins : 0))
+    const remainingMultipleSpins = computed(() => {
+        if (activeBonusEffect.value?.prizeType !== 'multiple') {
+            return 0
+        }
+
+        const baseSpins = activeBonusEffect.value.remainingSpins
+
+        if (isSpinning.value && baseSpins > 0) {
+            return baseSpins - 1
+        }
+
+        return baseSpins
+    })
 </script>

@@ -98,16 +98,26 @@ export const useHeaderBonusFlow = () => {
         isTransitioning.value = true
         wheelStore.isBonusAnimationPlaying = true
         try {
-            customText.value = null
-            currentVariant.value = 'BONUS_GAME'
-            animationState.value = 'entering'
-            bonusFlowPhase.value = 'bonus-label'
-
             const preparedResult = prepareBonusRouletteResult()
             if (!preparedResult) {
                 wheelStore.isBonusMode = false
                 return
             }
+
+            if (preparedResult.triggerSource === 'scatter') {
+                customText.value = null
+                animationState.value = 'dropping'
+                await sleep(SIGNBOARD_DROP_OUT_DURATION_MS + SIGNBOARD_SWAP_DELAY_MS)
+                await applyResultVariant(preparedResult)
+                wheelStore.isBonusMode = false
+                clearBonusRouletteResult()
+                return
+            }
+
+            customText.value = null
+            currentVariant.value = 'BONUS_GAME'
+            animationState.value = 'entering'
+            bonusFlowPhase.value = 'bonus-label'
 
             await sleep(SIGN_TO_ROULETTE_DELAY_MS)
             animationState.value = 'dropping'
