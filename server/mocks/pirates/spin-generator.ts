@@ -9,7 +9,6 @@ import {
     MAX_BUILD_ATTEMPTS,
     MIN_EXPLODING_GROUP_SIZE_BY_ELEMENT,
     MIN_SCATTER_GROUP_SIZE,
-    MAX_SCATTER_EXPLODE_COUNT,
     PROGRESS_ROULETTE_TOTAL_WEIGHT,
     PROGRESS_ROULETTE_WEIGHT_EPSILON,
     PROGRESS_ROULETTE_WEIGHTS,
@@ -356,8 +355,8 @@ const chooseExplodingGroups = (boardCounts: ElementCounts, forceAtLeastOne: bool
     }
 
     // Scatter-группа всегда последняя в очереди взрывов.
-    // Если scatter 8+, взрываем только 7, остальные остаются на поле.
-    return [...regularGroups, { type: 'bonus-scatter', count: Math.min(scatterCount, MAX_SCATTER_EXPLODE_COUNT) }]
+    // При 7+ scatter взрываем все, приз считается как за 7.
+    return [...regularGroups, { type: 'bonus-scatter', count: scatterCount }]
 }
 
 const resolveDrop = (boardCounts: ElementCounts, explodingGroups: ExplodingGroup[]): DropResolution => {
