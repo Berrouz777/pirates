@@ -16,7 +16,7 @@
             <MinusPlusButton mode="plus" class="h-full w-[18.5%]" :disabled="isAtMaxBet || props.isControlsLocked" @click="increaseBet" />
         </div>
 
-        <MenuButton class="absolute right-[88.5%] top-[66%] h-[19.5%] w-[8.5%]" />
+        <MenuButton class="absolute right-[88.5%] top-[66%] h-[19.5%] w-[8.5%]" @click="handleMenuClick" />
 
         <MinMaxButton mode="max" class="absolute right-[59%] top-[66%] h-[18%] w-[14%]" :disabled="isAtMaxBet || props.isControlsLocked" @click="setBetToMax" />
         <MinMaxButton
@@ -42,6 +42,10 @@
             :disabled="(props.isControlsLocked && !isAutoSpinning) || (props.isSpinning && !isAutoSpinning && !isStoppingAutoSpin)"
             @click="handleSpinClick"
         />
+
+        <ClientOnly>
+            <GameInfoPanel v-model="isMenuOpen" />
+        </ClientOnly>
     </div>
 </template>
 
@@ -60,6 +64,7 @@
     import MinMaxButton from '../buttons/components/min-max-button/MinMaxButton.vue'
     import MinusPlusButton from '../buttons/components/minus-plus-button/MinusPlusButton.vue'
     import MenuButton from '../buttons/components/menu-button/MenuButton.vue'
+    import GameInfoPanel from './components/game-info-panel/GameInfoPanel.vue'
 
     export interface FooterBlockProps {
         isSpinning: boolean
@@ -77,6 +82,7 @@
     const { decreaseBet, increaseBet, setBetToMin, setBetToMax, minBet, maxBet } = useBetControls({ bet })
     const { startAutoSpin, stopAutoSpin } = useWheelFlow()
     const isStoppingAutoSpin = ref(false)
+    const isMenuOpen = ref(false)
 
     const isAtMinBet = computed(() => bet.value <= minBet)
     const isAtMaxBet = computed(() => bet.value >= maxBet)
@@ -142,5 +148,9 @@
             isStoppingAutoSpin.value = true
         }
         stopAutoSpin()
+    }
+
+    const handleMenuClick = () => {
+        isMenuOpen.value = true
     }
 </script>

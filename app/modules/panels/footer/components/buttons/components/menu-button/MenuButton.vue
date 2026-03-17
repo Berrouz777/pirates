@@ -1,5 +1,5 @@
 <template>
-    <button class="menu-btn flex cursor-pointer select-none items-center justify-center">
+    <button class="menu-btn flex cursor-pointer select-none items-center justify-center" type="button" @click="emit('click', $event)">
         <SvgMenuButton class="z-[2] h-[41%] w-full pt-[3%]" />
         <SvgBgButton class="absolute inset-0 z-[1] h-full w-full" />
     </button>
@@ -8,6 +8,10 @@
 <script setup lang="ts">
     import SvgMenuButton from './components/svg-menu-button/SvgMenuButton.vue'
     import SvgBgButton from './components/svg-bg-button/SvgBgButton.vue'
+
+    const emit = defineEmits<{
+        (event: 'click', value: MouseEvent): void
+    }>()
 </script>
 
 <style scoped>
