@@ -16,6 +16,10 @@ export default defineNuxtConfig({
             ]
         }
     },
+    // devServer: {
+    //     port: 4000,
+    //     host: '0.0.0.0',
+    // },
     runtimeConfig: {
         public: {
             apiBase: import.meta.env.NUXT_PUBLIC_API_BASE || ''
@@ -27,35 +31,8 @@ export default defineNuxtConfig({
             standalone: true
         }
     },
-    fonts: {
-        families: [
-            {
-                name: 'Cuprum',
-                display: 'swap',
-                preload: true,
-                provider: 'google',
-                fallbacks: ['sans-serif'],
-                weights: [700]
-            },
-            {
-                name: 'Darumadrop One',
-                display: 'swap',
-                preload: true,
-                provider: 'google',
-                fallbacks: ['sans-serif']
-            },
-            {
-                name: 'Coiny',
-                display: 'swap',
-                preload: true,
-                provider: 'google',
-                fallbacks: ['sans-serif']
-            }
-        ]
-    },
     modules: [
         // prettier-ignore
-        '@nuxt/fonts',
         '@pinia/nuxt',
         '@nuxt/eslint',
         '@nuxtjs/i18n',
